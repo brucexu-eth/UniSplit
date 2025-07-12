@@ -15,8 +15,13 @@ export const APP_DESCRIPTION =
   'Split bills effortlessly with cryptocurrency payments'
 
 // Contract addresses
+export const BILL_SPLITTER_CONTRACT_ADDRESS =
+  import.meta.env.VITE_BILL_SPLITTER_CONTRACT_ADDRESS ||
+  '0x1234567890123456789012345678901234567890' // Placeholder for development
+
 export const CONTRACTS = {
   USDT: USDT_CONTRACT_ADDRESS,
+  BILL_SPLITTER: BILL_SPLITTER_CONTRACT_ADDRESS,
 } as const
 
 // Network configuration

@@ -176,7 +176,7 @@
               2
             ],
             "details": "Implement wagmi useContractWrite hook to call createBill function on the smart contract. Generate unique bill ID using crypto.randomUUID() before contract call. Handle transaction states (idle, loading, success, error) with appropriate UI feedback. Implement transaction confirmation waiting and error handling for contract failures. Store bill metadata locally after successful contract interaction.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Mock wagmi hooks for testing contract interactions. Test transaction state handling and error scenarios. Verify bill ID generation uniqueness."
           },
           {
@@ -360,7 +360,7 @@
     ],
     "metadata": {
       "created": "2025-07-12T01:30:30.939Z",
-      "updated": "2025-07-12T02:30:47.976Z",
+      "updated": "2025-07-12T02:38:15.102Z",
       "description": "Tasks for master context"
     }
   }

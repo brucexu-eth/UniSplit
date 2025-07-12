@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import { useCurrencyExchange } from '../hooks/useCurrencyExchange'
+import { useBillCreation } from '../hooks/useBillCreation'
 
 interface BillFormData {
   totalAmount: string
@@ -29,6 +30,17 @@ export default function CreateBill() {
     refresh,
   } = useCurrencyExchange()
 
+  const {
+    createBill,
+    isLoading: isCreatingBill,
+    isSuccess: billCreated,
+    isError: billCreationError,
+    error: billError,
+    txHash,
+    billId,
+    reset: resetBillCreation,
+  } = useBillCreation()
+
   const [formData, setFormData] = useState<BillFormData>({
     totalAmount: '',
     currency: 'NZD',
@@ -36,7 +48,6 @@ export default function CreateBill() {
     description: '',
   })
 
-  const [isLoading, setIsLoading] = useState(false)
   const [errors, setErrors] = useState<Partial<BillFormData>>({})
 
   const handleInputChange = (field: keyof BillFormData, value: string) => {
@@ -82,29 +93,36 @@ export default function CreateBill() {
       return
     }
 
-    setIsLoading(true)
     try {
-      // TODO: Implement smart contract integration
-      console.log('Creating bill with data:', formData)
+      // Create bill on blockchain
+      const result = await createBill(formData, totalUSDT)
 
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000))
+      if (result) {
+        console.log('Bill created:', {
+          billId: result.billId,
+          txHash: result.txHash,
+          formData,
+          usdtAmount: totalUSDT,
+        })
 
-      alert('Bill created successfully!')
-
-      // Reset form
-      setFormData({
-        totalAmount: '',
-        currency: 'NZD',
-        shares: '',
-        description: '',
-      })
+        // Don't reset form immediately - let user see success state
+        // Form will be reset when success modal is closed or user navigates away
+      }
     } catch (error) {
       console.error('Error creating bill:', error)
-      alert('Failed to create bill. Please try again.')
-    } finally {
-      setIsLoading(false)
     }
+  }
+
+  // Reset form when bill creation is successful and user wants to create another
+  const handleCreateAnother = () => {
+    setFormData({
+      totalAmount: '',
+      currency: 'NZD',
+      shares: '',
+      description: '',
+    })
+    resetBillCreation()
+    setErrors({})
   }
 
   const sharePrice =
@@ -213,7 +231,7 @@ export default function CreateBill() {
                     errors.totalAmount ? 'border-red-500' : 'border-gray-300'
                   }`}
                   placeholder="100.00"
-                  disabled={isLoading}
+                  disabled={isCreatingBill}
                 />
               </div>
               {errors.totalAmount && (
@@ -241,7 +259,7 @@ export default function CreateBill() {
                 value={formData.currency}
                 onChange={(e) => handleInputChange('currency', e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                disabled={isLoading}
+                disabled={isCreatingBill}
               >
                 {CURRENCIES.map((currency) => (
                   <option key={currency.value} value={currency.value}>
@@ -270,7 +288,7 @@ export default function CreateBill() {
                   errors.shares ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="4"
-                disabled={isLoading}
+                disabled={isCreatingBill}
               />
               {errors.shares && (
                 <p className="mt-1 text-sm text-red-600">{errors.shares}</p>
@@ -308,7 +326,7 @@ export default function CreateBill() {
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
                 placeholder="Dinner at restaurant, groceries, etc."
-                disabled={isLoading}
+                disabled={isCreatingBill}
               />
               {errors.description && (
                 <p className="mt-1 text-sm text-red-600">
@@ -365,14 +383,16 @@ export default function CreateBill() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isLoading || !isConnected}
+              disabled={isCreatingBill || !isConnected}
               className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                isLoading || !isConnected
+                isCreatingBill || !isConnected
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
-                  : 'bg-blue-600 text-white hover:bg-blue-700'
+                  : billCreated
+                    ? 'bg-green-600 text-white'
+                    : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
             >
-              {isLoading ? (
+              {isCreatingBill ? (
                 <span className="flex items-center justify-center">
                   <svg
                     className="animate-spin -ml-1 mr-3 h-5 w-5 text-white"
@@ -391,16 +411,131 @@ export default function CreateBill() {
                     <path
                       className="opacity-75"
                       fill="currentColor"
-                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                      d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 714 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                     ></path>
                   </svg>
-                  Creating Bill...
+                  Creating Bill on Blockchain...
+                </span>
+              ) : billCreated ? (
+                <span className="flex items-center justify-center">
+                  <svg
+                    className="-ml-1 mr-3 h-5 w-5 text-white"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M5 13l4 4L19 7"
+                    ></path>
+                  </svg>
+                  Bill Created Successfully!
                 </span>
               ) : (
                 'Create Bill'
               )}
             </button>
           </form>
+
+          {/* Success State */}
+          {billCreated && billId && txHash && (
+            <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
+              <div className="flex items-center mb-4">
+                <svg
+                  className="h-8 w-8 text-green-600 mr-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                <h3 className="text-lg font-bold text-green-900">
+                  Bill Created Successfully!
+                </h3>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                <div>
+                  <span className="font-medium text-green-800">Bill ID:</span>
+                  <code className="ml-2 px-2 py-1 bg-green-100 rounded text-green-700">
+                    {billId.slice(0, 10)}...{billId.slice(-8)}
+                  </code>
+                </div>
+                <div>
+                  <span className="font-medium text-green-800">
+                    Transaction:
+                  </span>
+                  <a
+                    href={`https://basescan.org/tx/${txHash}`}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="ml-2 text-green-600 hover:text-green-800 underline"
+                  >
+                    View on Basescan
+                  </a>
+                </div>
+                <div className="mt-4 flex space-x-3">
+                  <button
+                    onClick={handleCreateAnother}
+                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+                  >
+                    Create Another Bill
+                  </button>
+                  <button
+                    onClick={() => {
+                      const billUrl = `${window.location.origin}/bill/${billId}`
+                      navigator.clipboard.writeText(billUrl)
+                      alert('Bill URL copied to clipboard!')
+                    }}
+                    className="px-4 py-2 bg-white text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
+                  >
+                    Copy Bill URL
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+
+          {/* Error State */}
+          {billCreationError && billError && (
+            <div className="mt-8 p-6 bg-red-50 border border-red-200 rounded-lg">
+              <div className="flex items-center mb-4">
+                <svg
+                  className="h-8 w-8 text-red-600 mr-3"
+                  fill="none"
+                  stroke="currentColor"
+                  viewBox="0 0 24 24"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth="2"
+                    d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                  ></path>
+                </svg>
+                <h3 className="text-lg font-bold text-red-900">
+                  Failed to Create Bill
+                </h3>
+              </div>
+
+              <div className="space-y-3 text-sm">
+                <p className="text-red-700">{billError}</p>
+                <button
+                  onClick={resetBillCreation}
+                  className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors"
+                >
+                  Try Again
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </div>
