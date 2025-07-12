@@ -2,13 +2,17 @@ import { useState } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
-import { BillStatus } from '../contracts/BillSplitter'
+import { BillStatus } from '../contracts/BillSplitterV2'
 import { useBillReading } from '../hooks/useBillReading'
 import { useBillPayment } from '../hooks/useBillPayment'
+import { useBillUpdates } from '../hooks/useBillUpdates'
 import USDTFaucet from '../components/USDTFaucet'
+import BillUpdateForm from '../components/BillUpdateForm'
+import CreatorSelfPayment from '../components/CreatorSelfPayment'
 
 interface BillPaymentState {
   shareQuantity: number
+  showUpdateForm: boolean
 }
 
 interface BillPaymentErrors {
@@ -20,7 +24,7 @@ interface BillPaymentErrors {
 
 export default function BillPayment() {
   const { billId } = useParams<{ billId: string }>()
-  const { isConnected } = useAccount()
+  const { isConnected, address } = useAccount()
 
   // Use the bill reading hook
   const { bill, isLoading, error, refetch } = useBillReading(billId)
@@ -36,8 +40,16 @@ export default function BillPayment() {
     reset: resetPayment,
   } = useBillPayment()
 
+  // Use the bill updates hook
+  const {
+    closeBill,
+    isLoading: isClosing,
+    error: closeError,
+  } = useBillUpdates()
+
   const [state, setState] = useState<BillPaymentState>({
     shareQuantity: 1,
+    showUpdateForm: false,
   })
 
   const [errors, setErrors] = useState<BillPaymentErrors>({})
@@ -51,6 +63,40 @@ export default function BillPayment() {
     setState((prev) => ({ ...prev, shareQuantity: quantity }))
     clearError('paymentError')
     resetPayment() // Reset payment state when quantity changes
+  }
+
+  const handleShowUpdateForm = () => {
+    setState((prev) => ({ ...prev, showUpdateForm: true }))
+  }
+
+  const handleHideUpdateForm = () => {
+    setState((prev) => ({ ...prev, showUpdateForm: false }))
+  }
+
+  const handleUpdateSuccess = () => {
+    handleHideUpdateForm()
+    setTimeout(() => {
+      refetch()
+    }, 2000) // Wait for blockchain confirmation
+  }
+
+  const handleCloseBill = async () => {
+    if (!bill || !billId) return
+    
+    const success = await closeBill(billId)
+    if (success) {
+      setTimeout(() => {
+        refetch()
+      }, 2000) // Wait for blockchain confirmation
+    } else if (closeError) {
+      setErrors((prev) => ({ ...prev, contractError: closeError }))
+    }
+  }
+
+  const handleCreatorSelfPaymentSuccess = () => {
+    setTimeout(() => {
+      refetch()
+    }, 2000) // Wait for blockchain confirmation
   }
 
   // Handle payment approval
@@ -185,9 +231,7 @@ export default function BillPayment() {
                 className={`p-3 rounded-lg mb-4 ${
                   bill.status === BillStatus.Active
                     ? 'bg-green-50 border border-green-200'
-                    : bill.status === BillStatus.Settled
-                      ? 'bg-blue-50 border border-blue-200'
-                      : 'bg-red-50 border border-red-200'
+                    : 'bg-blue-50 border border-blue-200'
                 }`}
               >
                 <div className="flex items-center">
@@ -195,25 +239,19 @@ export default function BillPayment() {
                     className={`h-2 w-2 rounded-full mr-2 ${
                       bill.status === BillStatus.Active
                         ? 'bg-green-500'
-                        : bill.status === BillStatus.Settled
-                          ? 'bg-blue-500'
-                          : 'bg-red-500'
+                        : 'bg-blue-500'
                     }`}
                   ></div>
                   <span
                     className={`font-medium ${
                       bill.status === BillStatus.Active
                         ? 'text-green-800'
-                        : bill.status === BillStatus.Settled
-                          ? 'text-blue-800'
-                          : 'text-red-800'
+                        : 'text-blue-800'
                     }`}
                   >
                     {bill.status === BillStatus.Active
                       ? 'Active - Accepting Payments'
-                      : bill.status === BillStatus.Settled
-                        ? 'Settled - Fully Paid'
-                        : 'Cancelled'}
+                      : 'Closed - No Longer Accepting Payments'}
                   </span>
                 </div>
               </div>
@@ -267,6 +305,57 @@ export default function BillPayment() {
                 </div>
               </div>
             </div>
+
+            {/* Creator Controls */}
+            {address === bill.creator && bill.status === BillStatus.Active && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Creator Controls
+                </h2>
+                
+                <div className="flex flex-wrap gap-3 mb-4">
+                  <button
+                    onClick={handleShowUpdateForm}
+                    disabled={state.showUpdateForm}
+                    className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors disabled:opacity-50"
+                  >
+                    Update Bill
+                  </button>
+                  
+                  <button
+                    onClick={handleCloseBill}
+                    disabled={isClosing}
+                    className="px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 transition-colors disabled:opacity-50"
+                  >
+                    {isClosing ? 'Closing...' : 'Close Bill'}
+                  </button>
+                </div>
+
+                {closeError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+                    <p className="text-red-800 text-sm">{closeError}</p>
+                  </div>
+                )}
+                
+                {state.showUpdateForm && billId && (
+                  <BillUpdateForm
+                    bill={bill}
+                    billId={billId}
+                    onSuccess={handleUpdateSuccess}
+                    onCancel={handleHideUpdateForm}
+                  />
+                )}
+              </div>
+            )}
+
+            {/* Creator Self-Payment */}
+            {address === bill.creator && billId && (
+              <CreatorSelfPayment
+                bill={bill}
+                billId={billId}
+                onSuccess={handleCreatorSelfPaymentSuccess}
+              />
+            )}
 
             {/* Payment Section */}
             {bill.status === BillStatus.Active && (
@@ -418,7 +507,7 @@ export default function BillPayment() {
             )}
 
             {/* Bill Settled Message */}
-            {bill.status === BillStatus.Settled && (
+            {bill.status === BillStatus.Closed && bill.paidShares >= bill.totalShares && (
               <div className="bg-blue-50 border border-blue-200 rounded-lg p-6 text-center">
                 <svg
                   className="h-12 w-12 text-blue-600 mx-auto mb-4"
@@ -444,7 +533,7 @@ export default function BillPayment() {
             )}
 
             {/* Bill Cancelled Message */}
-            {bill.status === BillStatus.Cancelled && (
+            {bill.status === BillStatus.Closed && bill.paidShares < bill.totalShares && (
               <div className="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
                 <svg
                   className="h-12 w-12 text-red-600 mx-auto mb-4"

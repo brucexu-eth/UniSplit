@@ -1,10 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useReadContract } from 'wagmi'
-import { BILL_SPLITTER_ABI, Bill, BillStatus } from '../contracts/BillSplitter'
+import { BILL_SPLITTER_V2_ABI, BillV2, BillStatus } from '../contracts/BillSplitterV2'
 import { CONTRACTS } from '../config/constants'
 
 interface BillReadingState {
-  bill: Bill | null
+  bill: BillV2 | null
   isLoading: boolean
   error: string | null
   exists: boolean
@@ -32,7 +32,7 @@ export function useBillReading(
     refetch: refetchExists,
   } = useReadContract({
     address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-    abi: BILL_SPLITTER_ABI,
+    abi: BILL_SPLITTER_V2_ABI,
     functionName: 'isBillExists',
     args: billId ? [billId as `0x${string}`] : undefined,
     query: {
@@ -48,7 +48,7 @@ export function useBillReading(
     refetch: refetchBill,
   } = useReadContract({
     address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-    abi: BILL_SPLITTER_ABI,
+    abi: BILL_SPLITTER_V2_ABI,
     functionName: 'getBill',
     args: billId ? [billId as `0x${string}`] : undefined,
     query: {
@@ -101,8 +101,8 @@ export function useBillReading(
     }
 
     if (billExists && billData) {
-      // Transform the contract data to our Bill interface
-      // billData is a tuple from the contract
+      // Transform the contract data to our BillV2 interface
+      // billData is a tuple from the contract: [creator, sharePrice, totalShares, paidShares, status, createdAt, description]
       const bill = billData as unknown as readonly [
         string,
         bigint,
@@ -110,18 +110,16 @@ export function useBillReading(
         number,
         number,
         bigint,
-        bigint,
         string,
       ]
-      const transformedBill: Bill = {
+      const transformedBill: BillV2 = {
         creator: bill[0],
         sharePrice: bill[1],
         totalShares: bill[2],
         paidShares: bill[3],
         status: bill[4] as BillStatus,
         createdAt: bill[5],
-        settledAt: bill[6],
-        description: bill[7],
+        description: bill[6],
       }
 
       setState({

@@ -150,12 +150,13 @@ export default function CreateBill() {
           break
 
         case 'description':
-          if (!fieldValue || fieldValue.trim() === '') {
-            error = 'Description is required'
-          } else if (fieldValue.trim().length < 3) {
-            error = 'Description must be at least 3 characters'
-          } else if (fieldValue.length > 200) {
-            error = 'Description cannot exceed 200 characters'
+          // Description is now optional
+          if (fieldValue && fieldValue.trim() !== '') {
+            if (fieldValue.trim().length < 3) {
+              error = 'Description must be at least 3 characters'
+            } else if (fieldValue.length > 200) {
+              error = 'Description cannot exceed 200 characters'
+            }
           }
           break
 
@@ -177,7 +178,7 @@ export default function CreateBill() {
       'totalAmount',
       'currency',
       'shares',
-      'description',
+      'description', // Still validate description if provided
     ]
     const isValid = fields.every((field) => validateField(field))
 
@@ -492,7 +493,7 @@ export default function CreateBill() {
                 htmlFor="description"
                 className="block text-sm font-medium text-gray-700 mb-2"
               >
-                Description
+                Description <span className="text-gray-400 text-sm">(optional)</span>
               </label>
               <textarea
                 id="description"
@@ -504,7 +505,7 @@ export default function CreateBill() {
                 className={`w-full px-4 py-3 border rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
                   errors.description ? 'border-red-500' : 'border-gray-300'
                 }`}
-                placeholder="Dinner at restaurant, groceries, etc."
+                placeholder="Dinner at restaurant, groceries, etc. (optional)"
                 disabled={isCreatingBill}
               />
               {errors.description && (

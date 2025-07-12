@@ -5,7 +5,7 @@ import {
   useWaitForTransactionReceipt,
 } from 'wagmi'
 import { parseUnits, encodePacked, keccak256 } from 'viem'
-import { BILL_SPLITTER_ABI } from '../contracts/BillSplitter'
+import { BILL_SPLITTER_V2_ABI } from '../contracts/BillSplitterV2'
 import { CONTRACTS } from '../config/constants'
 
 interface BillData {
@@ -104,15 +104,15 @@ export function useBillCreation(): UseBillCreationResult {
         )
 
         // Call the smart contract
-        await writeContract({
+        writeContract({
           address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-          abi: BILL_SPLITTER_ABI,
+          abi: BILL_SPLITTER_V2_ABI,
           functionName: 'createBill',
           args: [
             billId as `0x${string}`,
             sharePrice,
             parseInt(billData.shares),
-            billData.description,
+            billData.description.trim() || '', // Use empty string if no description
           ],
         })
 

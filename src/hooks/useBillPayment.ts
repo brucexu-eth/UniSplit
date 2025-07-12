@@ -6,7 +6,7 @@ import {
   useReadContract,
 } from 'wagmi'
 import { parseUnits } from 'viem'
-import { BILL_SPLITTER_ABI } from '../contracts/BillSplitter'
+import { BILL_SPLITTER_V2_ABI } from '../contracts/BillSplitterV2'
 import { CONTRACTS } from '../config/constants'
 import { USDT_ABI } from '../contracts/usdt'
 
@@ -103,7 +103,7 @@ export function useBillPayment(): UseBillPaymentResult {
       // Approve maximum amount for convenience
       const maxAmount = parseUnits('1000000', 6) // 1M USDT max approval
 
-      await writeApproval({
+      writeApproval({
         address: CONTRACTS.USDT as `0x${string}`,
         abi: USDT_ABI,
         functionName: 'approve',
@@ -161,9 +161,9 @@ export function useBillPayment(): UseBillPaymentResult {
           error: null,
         }))
 
-        await writePayment({
+        writePayment({
           address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-          abi: BILL_SPLITTER_ABI,
+          abi: BILL_SPLITTER_V2_ABI,
           functionName: 'payBill',
           args: [billId as `0x${string}`, shareCount],
         })
