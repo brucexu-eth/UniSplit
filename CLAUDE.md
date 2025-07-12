@@ -1,5 +1,7 @@
 # Task Master AI - Claude Code Integration Guide
 
+First, try to use minimal code to get the project working.
+
 ## Essential Commands
 
 ### Core Workflow Commands

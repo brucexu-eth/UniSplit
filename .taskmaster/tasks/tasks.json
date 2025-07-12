@@ -1,0 +1,367 @@
+{
+  "master": {
+    "tasks": [
+      {
+        "id": 1,
+        "title": "Setup Project Repository and Development Environment",
+        "description": "Initialize React + Vite PWA project with TypeScript, configure build pipeline, and set up Base mainnet configuration",
+        "details": "Create new Vite project with React + TypeScript template. Install dependencies: wagmi, viem, @rainbow-me/rainbowkit for Web3 integration, qrcode for QR generation, react-router-dom for routing. Configure vite.config.ts for PWA support with service worker. Set up environment variables for Base mainnet (chain ID 8453) and USDT contract address. Create basic folder structure: components/, hooks/, utils/, contracts/. Configure TypeScript strict mode and ESLint rules.",
+        "testStrategy": "Verify project builds successfully, PWA manifest generates correctly, and Base network connection works in development environment",
+        "priority": "high",
+        "dependencies": [],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Initialize Vite + React + TypeScript Project Structure",
+            "description": "Create new Vite project with React TypeScript template and establish basic folder structure",
+            "dependencies": [],
+            "details": "Run 'npm create vite@latest . -- --template react-ts' to initialize project. Create folder structure: src/components/, src/hooks/, src/utils/, src/contracts/, src/pages/. Set up basic routing structure with react-router-dom. Configure index.html with proper meta tags for PWA.",
+            "status": "pending",
+            "testStrategy": "Verify project builds successfully with 'npm run build' and development server starts with 'npm run dev'"
+          },
+          {
+            "id": 2,
+            "title": "Install and Configure Web3 Dependencies",
+            "description": "Install wagmi, viem, RainbowKit and other required dependencies for Web3 integration",
+            "dependencies": [
+              1
+            ],
+            "details": "Install packages: wagmi, viem, @rainbow-me/rainbowkit, qrcode, react-router-dom. Set up wagmi config with Base mainnet (chain ID 8453). Configure RainbowKit providers in main.tsx. Create Web3 context and providers structure.",
+            "status": "pending",
+            "testStrategy": "Verify all packages install without conflicts and Web3 providers render without errors"
+          },
+          {
+            "id": 3,
+            "title": "Configure TypeScript and ESLint Settings",
+            "description": "Set up strict TypeScript configuration and ESLint rules for code quality",
+            "dependencies": [
+              1
+            ],
+            "details": "Update tsconfig.json with strict mode enabled, path mappings for src/ folder. Configure ESLint with React and TypeScript rules. Add prettier for code formatting. Set up import/export rules and type checking.",
+            "status": "pending",
+            "testStrategy": "Run 'npm run lint' to verify no linting errors and TypeScript compiles without warnings"
+          },
+          {
+            "id": 4,
+            "title": "Configure PWA Support with Vite",
+            "description": "Set up vite.config.ts for Progressive Web App functionality with service worker",
+            "dependencies": [
+              2,
+              3
+            ],
+            "details": "Install vite-plugin-pwa. Configure vite.config.ts with PWA plugin, service worker settings, and manifest generation. Set up workbox for caching strategy. Configure build output for PWA requirements.",
+            "status": "pending",
+            "testStrategy": "Build project and verify service worker is generated and manifest.json is created with proper PWA metadata"
+          },
+          {
+            "id": 5,
+            "title": "Set up Environment Configuration and Base Mainnet Settings",
+            "description": "Configure environment variables for Base mainnet and USDT contract integration",
+            "dependencies": [
+              2
+            ],
+            "details": "Create .env.example and .env files with Base mainnet RPC URL, chain ID 8453, USDT contract address on Base (0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913). Set up environment variable validation. Configure contract ABIs and addresses. Create utils for network configuration.",
+            "status": "pending",
+            "testStrategy": "Verify environment variables load correctly and Web3 connection to Base mainnet works"
+          }
+        ]
+      },
+      {
+        "id": 2,
+        "title": "Develop Smart Contract for Bill Management",
+        "description": "Create Solidity contract to handle bill creation, payment tracking, and state management on Base mainnet",
+        "details": "Write BillSplitter.sol contract with functions: createBill(bytes32 id, uint256 sharePrice, uint8 totalShares), payShare(bytes32 billId, uint8 shareCount), closeBill(bytes32 billId), cancelBill(bytes32 billId). Include events: BillCreated, Paid, BillClosed, BillCancelled. Store bill state: creator address, sharePrice in USDT, totalShares, paidShares, status enum (Active/Settled/Cancelled), mapping of payer addresses to share counts. Use OpenZeppelin's ReentrancyGuard and implement proper access controls. Deploy script for Base mainnet using Hardhat or Foundry.",
+        "testStrategy": "Comprehensive unit tests covering all contract functions, edge cases, reentrancy protection, and gas optimization. Deploy to Base testnet for integration testing",
+        "priority": "high",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Set up Solidity project structure and dependencies",
+            "description": "Initialize the smart contract development environment with proper tooling and dependencies for Base mainnet deployment",
+            "dependencies": [],
+            "details": "Create a new Hardhat or Foundry project. Install OpenZeppelin contracts, specifically ReentrancyGuard and access control utilities. Configure hardhat.config.js or foundry.toml for Base mainnet deployment with proper RPC endpoints and verification settings. Set up directory structure with contracts/, scripts/, and test/ folders. Install USDT token interface dependencies for Base mainnet.",
+            "status": "pending",
+            "testStrategy": "Verify project compilation and basic deployment script execution on local network"
+          },
+          {
+            "id": 2,
+            "title": "Implement core BillSplitter contract structure and state variables",
+            "description": "Create the main contract file with all required state variables, enums, structs, and mappings for bill management",
+            "dependencies": [
+              1
+            ],
+            "details": "Create BillSplitter.sol contract inheriting from ReentrancyGuard. Define Bill struct with creator, sharePrice, totalShares, paidShares, and status fields. Implement BillStatus enum (Active, Settled, Cancelled). Create bills mapping from bytes32 to Bill struct and billPayments mapping to track payer addresses and share counts. Add USDT token contract reference and proper access control variables.",
+            "status": "pending",
+            "testStrategy": "Unit tests for contract deployment and state variable initialization"
+          },
+          {
+            "id": 3,
+            "title": "Implement bill creation and management functions",
+            "description": "Develop createBill, closeBill, and cancelBill functions with proper validation and access controls",
+            "dependencies": [
+              2
+            ],
+            "details": "Implement createBill function to accept bill ID, share price in USDT, and total shares. Add validation for unique bill IDs, positive values, and emit BillCreated event. Implement closeBill function with onlyCreator modifier to change status to Settled and emit BillClosed event. Implement cancelBill function with proper refund logic for paid shares and emit BillCancelled event. Add view functions to query bill details.",
+            "status": "pending",
+            "testStrategy": "Test bill creation with various parameters, access control enforcement, and proper event emission"
+          },
+          {
+            "id": 4,
+            "title": "Implement payment processing and share tracking",
+            "description": "Develop the payShare function with USDT integration and comprehensive payment tracking",
+            "dependencies": [
+              3
+            ],
+            "details": "Implement payShare function with nonReentrant modifier to accept bill ID and share count. Integrate USDT token transfers using transferFrom for payment processing. Update bill state by incrementing paidShares and tracking payer addresses with share counts. Add validation for active bill status, sufficient allowance, and prevent overpayment. Emit Paid event with payer details. Automatically close bill when fully paid.",
+            "status": "pending",
+            "testStrategy": "Test payment scenarios including partial payments, full payments, USDT integration, and automatic bill closure"
+          },
+          {
+            "id": 5,
+            "title": "Create deployment scripts and comprehensive testing suite",
+            "description": "Develop deployment scripts for Base mainnet and comprehensive test coverage for all contract functionality",
+            "dependencies": [
+              4
+            ],
+            "details": "Create deployment script using Hardhat or Foundry for Base mainnet with proper constructor parameters and verification commands. Implement comprehensive test suite covering all functions, edge cases, access controls, and integration scenarios. Include tests for USDT mock contracts, reentrancy protection, and gas optimization. Add deployment verification and contract interaction scripts. Document deployment addresses and verification links.",
+            "status": "pending",
+            "testStrategy": "Full integration testing on testnet before mainnet deployment, gas usage analysis, and security audit checklist verification"
+          }
+        ]
+      },
+      {
+        "id": 3,
+        "title": "Implement Bill Creation Interface",
+        "description": "Build UI for organizers to create new bills with total amount, currency selection, and share configuration",
+        "details": "Create BillCreation component with form fields: total amount (number input), currency dropdown (default NZD), number of shares (number input). Integrate with exchangerate.host API for real-time NZD to USDT conversion. Generate unique bill ID using crypto.randomUUID(). Call smart contract createBill function via wagmi hooks. Display loading states during transaction confirmation. Generate shareable URL format /#/bill/<id> and QR code using qrcode library. Implement form validation and error handling for network issues.",
+        "testStrategy": "Test form validation, currency conversion accuracy, contract interaction success/failure scenarios, and QR code generation. Verify URL generation and shareability",
+        "priority": "high",
+        "dependencies": [
+          1,
+          2
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create Bill Creation Form Component Structure",
+            "description": "Build the core BillCreation component with form fields for total amount, currency selection, and number of shares",
+            "dependencies": [],
+            "details": "Create a new React component BillCreation.tsx with form structure including: number input for total amount with validation, currency dropdown with NZD as default option, number input for shares count with minimum value of 1. Use controlled inputs with useState for form state management. Add proper form styling and layout using existing design system components.",
+            "status": "pending",
+            "testStrategy": "Unit tests for form rendering, input validation, and state management. Test form field interactions and validation messages."
+          },
+          {
+            "id": 2,
+            "title": "Integrate Currency Exchange Rate API",
+            "description": "Implement real-time NZD to USDT conversion using exchangerate.host API",
+            "dependencies": [
+              1
+            ],
+            "details": "Create a custom hook useCurrencyExchange that fetches current NZD to USDT exchange rate from exchangerate.host API. Implement error handling for API failures with fallback rates. Add real-time conversion display in the form that updates when amount changes. Cache exchange rates for 5 minutes to reduce API calls. Handle loading states and network errors gracefully.",
+            "status": "pending",
+            "testStrategy": "Mock API responses for testing exchange rate fetching, error handling, and caching behavior. Test conversion calculations accuracy."
+          },
+          {
+            "id": 3,
+            "title": "Implement Smart Contract Integration",
+            "description": "Connect form submission to blockchain smart contract using wagmi hooks",
+            "dependencies": [
+              1,
+              2
+            ],
+            "details": "Implement wagmi useContractWrite hook to call createBill function on the smart contract. Generate unique bill ID using crypto.randomUUID() before contract call. Handle transaction states (idle, loading, success, error) with appropriate UI feedback. Implement transaction confirmation waiting and error handling for contract failures. Store bill metadata locally after successful contract interaction.",
+            "status": "pending",
+            "testStrategy": "Mock wagmi hooks for testing contract interactions. Test transaction state handling and error scenarios. Verify bill ID generation uniqueness."
+          },
+          {
+            "id": 4,
+            "title": "Generate Shareable URLs and QR Codes",
+            "description": "Create shareable bill URLs and QR codes for easy sharing",
+            "dependencies": [
+              3
+            ],
+            "details": "After successful bill creation, generate shareable URL in format /#/bill/<id> using the generated bill ID. Integrate qrcode library to generate QR code containing the bill URL. Display both text URL and QR code in a success modal or dedicated section. Implement copy-to-clipboard functionality for the URL. Add social sharing options if required.",
+            "status": "pending",
+            "testStrategy": "Test URL generation with different bill IDs. Verify QR code generation and scanning functionality. Test clipboard copy functionality across browsers."
+          },
+          {
+            "id": 5,
+            "title": "Add Form Validation and Error Handling",
+            "description": "Implement comprehensive form validation and error handling for all user interactions and network issues",
+            "dependencies": [
+              1,
+              2,
+              3,
+              4
+            ],
+            "details": "Add client-side validation for all form fields: minimum amount validation, currency selection validation, shares count validation (minimum 1, maximum reasonable limit). Implement error handling for API failures, contract interaction errors, and network connectivity issues. Add user-friendly error messages and loading states throughout the flow. Implement form reset functionality after successful submission.",
+            "status": "pending",
+            "testStrategy": "Test all validation scenarios with invalid inputs. Test error handling for network failures, API errors, and contract failures. Verify loading states and user feedback messages."
+          }
+        ]
+      },
+      {
+        "id": 4,
+        "title": "Build Bill Payment Interface",
+        "description": "Create payment interface for guests to pay their share using USDT on Base network",
+        "details": "Create BillPayment component that reads bill details from contract using bill ID from URL params. Display bill information: total amount, share price, shares remaining. Implement share quantity selector (default 1, allow multiple for proxy payments). Generate EIP-681 URI format: ethereum:USDT@8453/transfer?address=<contract>&uint256=<amount>. Use wagmi/viem for USDT transfer transaction with proper error handling. Show transaction pending/success states. Update UI immediately on transaction confirmation via event listening.",
+        "testStrategy": "Test payment flow with different share quantities, transaction success/failure handling, EIP-681 URI generation, and real-time UI updates",
+        "priority": "high",
+        "dependencies": [
+          2,
+          3
+        ],
+        "status": "pending",
+        "subtasks": [
+          {
+            "id": 1,
+            "title": "Create BillPayment Component Structure",
+            "description": "Set up the main BillPayment React component with URL parameter handling and basic layout structure",
+            "dependencies": [],
+            "details": "Create BillPayment.tsx component that extracts bill ID from URL params using React Router. Set up component state for bill data, loading states, and error handling. Create basic JSX structure with sections for bill info display, share selector, and payment action. Implement proper TypeScript interfaces for bill data structure.",
+            "status": "pending",
+            "testStrategy": "Unit tests for URL parameter extraction and component rendering with mock data"
+          },
+          {
+            "id": 2,
+            "title": "Implement Contract Integration for Bill Reading",
+            "description": "Add smart contract integration to fetch bill details using the bill ID from URL parameters",
+            "dependencies": [
+              1
+            ],
+            "details": "Use wagmi hooks to read bill data from the smart contract. Implement useContractRead hook to fetch bill information including total amount, share price, and shares remaining. Add proper error handling for invalid bill IDs or contract read failures. Set up loading states and data validation.",
+            "status": "pending",
+            "testStrategy": "Integration tests with mock contract responses and error scenarios"
+          },
+          {
+            "id": 3,
+            "title": "Build Bill Information Display",
+            "description": "Create UI components to display bill details and share information with proper formatting",
+            "dependencies": [
+              2
+            ],
+            "details": "Design and implement bill information display showing total amount, individual share price, and remaining shares. Format USDT amounts with proper decimal handling. Add visual indicators for share availability. Implement responsive design that works on mobile and desktop. Use proper loading skeletons while data is being fetched.",
+            "status": "pending",
+            "testStrategy": "Visual testing and responsive design validation across different screen sizes"
+          },
+          {
+            "id": 4,
+            "title": "Implement Share Quantity Selector",
+            "description": "Create interactive share quantity selector with validation and proxy payment support",
+            "dependencies": [
+              3
+            ],
+            "details": "Build quantity selector component with increment/decrement buttons and direct input. Set default quantity to 1 and validate against available shares. Calculate total payment amount based on selected quantity. Add clear labeling for proxy payments when quantity > 1. Implement proper input validation and error messages for invalid quantities.",
+            "status": "pending",
+            "testStrategy": "Unit tests for quantity validation logic and edge cases"
+          },
+          {
+            "id": 5,
+            "title": "Implement USDT Payment Transaction Flow",
+            "description": "Build the complete payment transaction flow with EIP-681 URI generation and wagmi integration",
+            "dependencies": [
+              4
+            ],
+            "details": "Generate EIP-681 URI format for USDT transfers on Base network. Implement wagmi useContractWrite hook for USDT transfer transactions. Add transaction state management (pending, success, error). Implement real-time event listening for transaction confirmation and UI updates. Add proper error handling for insufficient balance, network issues, and transaction failures. Show clear transaction status indicators and success confirmation.",
+            "status": "pending",
+            "testStrategy": "End-to-end testing with testnet transactions and mock wallet interactions"
+          }
+        ]
+      },
+      {
+        "id": 5,
+        "title": "Implement Real-time Bill Status Tracking",
+        "description": "Build live status dashboard showing payment progress, payer list, and real-time updates via WebSocket events",
+        "details": "Create BillStatus component with progress bar showing (paidShares / totalShares * 100)%. Display list of payers with ENS resolution using provider.lookupAddress(), show share count and timestamp for each payment. Implement WebSocket connection to Base RPC for real-time Paid event listening. Use React state management (useState/useReducer) for live updates. Add auto-refresh fallback every 30 seconds. Show bill metadata: creator, total amount, creation time, current status. Handle connection errors gracefully with reconnection logic.",
+        "testStrategy": "Test real-time updates with multiple concurrent payments, ENS resolution accuracy, WebSocket connection reliability, and UI performance with large payment lists",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 6,
+        "title": "Add Organizer Bill Management Controls",
+        "description": "Implement organizer-only controls for closing and cancelling bills with proper access control",
+        "details": "Create OrganizerControls component visible only to bill creator (check connected wallet against contract creator). Add 'Close Bill' button calling closeBill() contract function - available always. Add 'Cancel Bill' button calling cancelBill() - disabled after first payment detected. Implement confirmation modals for destructive actions. Show different UI states based on bill status (Active/Settled/Cancelled). Add access control checks and proper error messaging for unauthorized actions. Display organizer badge/indicator in UI.",
+        "testStrategy": "Verify access control works correctly, buttons appear only for bill creator, confirmation flows work, and state changes reflect immediately in UI",
+        "priority": "medium",
+        "dependencies": [
+          2,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 7,
+        "title": "Integrate Coinbase Pay On-ramp Widget",
+        "description": "Add Coinbase Pay integration for users to purchase USDT on Base network directly from the payment interface",
+        "details": "Install @coinbase/wallet-sdk and configure Coinbase Pay widget. Add 'Buy USDT' button in payment interface for users with insufficient balance. Configure widget for Base network USDT purchases with minimum amount matching required share price. Implement widget popup with proper error handling and success callbacks. Add balance checking logic to show/hide on-ramp option. Include fallback to Transak SDK as secondary option. Store API keys in environment variables and handle rate limiting.",
+        "testStrategy": "Test on-ramp flow in sandbox environment, verify USDT purchase amounts, handle success/failure scenarios, and validate fallback to Transak works",
+        "priority": "medium",
+        "dependencies": [
+          4
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 8,
+        "title": "Implement Multi-RPC Fallback System",
+        "description": "Build robust RPC connection management with automatic failover between multiple Base network endpoints",
+        "details": "Create RPC provider configuration with multiple Base mainnet endpoints: Alchemy, Infura, QuickNode, and public RPCs. Implement round-robin load balancing and automatic failover on rate limits or timeouts. Add connection health monitoring with exponential backoff for failed endpoints. Configure wagmi with custom transport using fallback array. Implement request retry logic with circuit breaker pattern. Add RPC performance metrics logging for monitoring. Store endpoint configurations in environment variables.",
+        "testStrategy": "Test failover scenarios by simulating RPC failures, verify performance under load, and confirm automatic recovery when endpoints come back online",
+        "priority": "medium",
+        "dependencies": [
+          1
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 9,
+        "title": "Build Farcaster Frame Integration",
+        "description": "Create Farcaster Frame for viral social sharing with embedded payment and status viewing functionality",
+        "details": "Implement Farcaster Frame protocol with meta tags for bill sharing. Create frame endpoints: /api/frame/bill/<id> returning frame HTML with 'Pay 1 Share' and 'View Status' buttons. Handle frame actions for payment initiation and status display. Generate frame images showing bill summary: total amount, shares remaining, progress bar. Implement frame state management for button interactions. Add frame validation and error handling. Configure frame manifest and test with Frame Validator tool.",
+        "testStrategy": "Test frame rendering in Farcaster clients, verify button functionality, validate frame protocol compliance, and test viral sharing mechanics",
+        "priority": "low",
+        "dependencies": [
+          4,
+          5
+        ],
+        "status": "pending",
+        "subtasks": []
+      },
+      {
+        "id": 10,
+        "title": "Deploy and Configure Production Environment",
+        "description": "Deploy application to Vercel with proper environment configuration, analytics, and monitoring",
+        "details": "Configure Vercel deployment with static site generation for optimal performance. Set up environment variables for production: Base RPC endpoints, API keys for on-ramp services, contract addresses. Configure custom domain and SSL. Implement Plausible Analytics for bill creation tracking. Set up monitoring for contract events and application performance. Configure PWA service worker for offline capability. Add proper SEO meta tags and Open Graph tags for social sharing. Set up automated deployment from main branch with proper staging environment.",
+        "testStrategy": "Verify production deployment works correctly, analytics tracking functions, PWA installs properly, and all environment configurations are secure and functional",
+        "priority": "high",
+        "dependencies": [
+          3,
+          5,
+          8
+        ],
+        "status": "pending",
+        "subtasks": []
+      }
+    ],
+    "metadata": {
+      "created": "2025-07-12T01:30:30.939Z",
+      "updated": "2025-07-12T01:30:30.939Z",
+      "description": "Tasks for master context"
+    }
+  }
+}
