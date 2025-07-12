@@ -69,21 +69,6 @@ export const ERC20_ABI = [
     outputs: [{ name: '', type: 'string' }],
     stateMutability: 'view',
   },
-  // Faucet functions for testnet tokens
-  {
-    type: 'function',
-    name: 'faucet',
-    inputs: [],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'mintToSelf',
-    inputs: [{ name: 'amount', type: 'uint256' }],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
 ] as const
 
 // For backward compatibility
