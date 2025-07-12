@@ -29,10 +29,8 @@ export default function BillPayment() {
     payBill,
     approve,
     needsApproval,
-    allowance,
     isLoading: isPaymentLoading,
     isSuccess: isPaymentSuccess,
-    isError: isPaymentError,
     error: paymentError,
     reset: resetPayment,
   } = useBillPayment()
