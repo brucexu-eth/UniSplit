@@ -145,7 +145,7 @@
           1,
           2
         ],
-        "status": "pending",
+        "status": "in-progress",
         "subtasks": [
           {
             "id": 1,
@@ -153,7 +153,7 @@
             "description": "Build the core BillCreation component with form fields for total amount, currency selection, and number of shares",
             "dependencies": [],
             "details": "Create a new React component BillCreation.tsx with form structure including: number input for total amount with validation, currency dropdown with NZD as default option, number input for shares count with minimum value of 1. Use controlled inputs with useState for form state management. Add proper form styling and layout using existing design system components.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Unit tests for form rendering, input validation, and state management. Test form field interactions and validation messages."
           },
           {
@@ -360,7 +360,7 @@
     ],
     "metadata": {
       "created": "2025-07-12T01:30:30.939Z",
-      "updated": "2025-07-12T02:09:57.010Z",
+      "updated": "2025-07-12T02:21:14.479Z",
       "description": "Tasks for master context"
     }
   }
