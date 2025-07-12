@@ -1,6 +1,7 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import CreateBill from './pages/CreateBill'
+import BillPayment from './pages/BillPayment'
 import './App.css'
 
 function App() {
@@ -38,7 +39,7 @@ function App() {
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/create" element={<CreateBill />} />
-            <Route path="/bill/:billId" element={<BillDetailsPage />} />
+            <Route path="/bill/:billId" element={<BillPayment />} />
           </Routes>
         </main>
       </div>
@@ -133,16 +134,6 @@ function HomePage() {
           </div>
         </div>
       </div>
-    </div>
-  )
-}
-
-// Placeholder for Bill Details Page
-function BillDetailsPage() {
-  return (
-    <div className="max-w-4xl mx-auto px-4 py-8">
-      <h1 className="text-2xl font-bold">Bill Details</h1>
-      <p>Coming soon - Bill payment interface</p>
     </div>
   )
 }
