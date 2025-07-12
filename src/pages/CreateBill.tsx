@@ -1,6 +1,7 @@
 import { useState } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
+import { useCurrencyExchange } from '../hooks/useCurrencyExchange'
 
 interface BillFormData {
   totalAmount: string
@@ -20,6 +21,14 @@ const CURRENCIES = [
 
 export default function CreateBill() {
   const { isConnected } = useAccount()
+  const {
+    convertToUSDT,
+    loading: exchangeLoading,
+    error: exchangeError,
+    lastUpdated,
+    refresh,
+  } = useCurrencyExchange()
+
   const [formData, setFormData] = useState<BillFormData>({
     totalAmount: '',
     currency: 'NZD',
@@ -105,6 +114,22 @@ export default function CreateBill() {
         )
       : '0.00'
 
+  // Calculate USDT equivalents
+  const totalUSDT = formData.totalAmount
+    ? convertToUSDT(
+        parseFloat(formData.totalAmount),
+        formData.currency
+      ).toFixed(2)
+    : '0.00'
+
+  const sharePriceUSDT =
+    formData.totalAmount && formData.shares
+      ? (
+          convertToUSDT(parseFloat(formData.totalAmount), formData.currency) /
+          parseInt(formData.shares)
+        ).toFixed(2)
+      : '0.00'
+
   return (
     <div className="min-h-screen bg-gray-50 py-8">
       <div className="max-w-2xl mx-auto px-4">
@@ -117,6 +142,43 @@ export default function CreateBill() {
               Split your bill among friends and collect payments in
               cryptocurrency
             </p>
+
+            {/* Exchange Rate Status */}
+            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center space-x-2">
+                  {exchangeLoading ? (
+                    <div className="flex items-center space-x-2">
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                      <span className="text-sm text-gray-600">
+                        Loading exchange rates...
+                      </span>
+                    </div>
+                  ) : exchangeError ? (
+                    <div className="flex items-center space-x-2">
+                      <span className="text-sm text-orange-600">
+                        Using fallback rates
+                      </span>
+                      <button
+                        onClick={refresh}
+                        className="text-blue-600 hover:text-blue-800 text-sm underline"
+                      >
+                        Retry
+                      </button>
+                    </div>
+                  ) : (
+                    <span className="text-sm text-green-600">
+                      Exchange rates updated
+                    </span>
+                  )}
+                </div>
+                {lastUpdated && (
+                  <span className="text-xs text-gray-500">
+                    {lastUpdated.toLocaleTimeString()}
+                  </span>
+                )}
+              </div>
+            </div>
           </div>
 
           {!isConnected && (
@@ -157,6 +219,11 @@ export default function CreateBill() {
               {errors.totalAmount && (
                 <p className="mt-1 text-sm text-red-600">
                   {errors.totalAmount}
+                </p>
+              )}
+              {formData.totalAmount && parseFloat(formData.totalAmount) > 0 && (
+                <p className="mt-1 text-sm text-blue-600">
+                  ≈ {totalUSDT} USDT {exchangeLoading ? '(calculating...)' : ''}
                 </p>
               )}
             </div>
@@ -209,9 +276,16 @@ export default function CreateBill() {
                 <p className="mt-1 text-sm text-red-600">{errors.shares}</p>
               )}
               {formData.shares && parseInt(formData.shares) > 0 && (
-                <p className="mt-1 text-sm text-gray-600">
-                  Share price: {sharePrice} {formData.currency} per person
-                </p>
+                <div className="mt-1 space-y-1">
+                  <p className="text-sm text-gray-600">
+                    Share price: {sharePrice} {formData.currency} per person
+                  </p>
+                  {formData.totalAmount && (
+                    <p className="text-sm text-blue-600">
+                      ≈ {sharePriceUSDT} USDT per person
+                    </p>
+                  )}
+                </div>
               )}
             </div>
 
@@ -246,16 +320,45 @@ export default function CreateBill() {
             {/* Summary */}
             {formData.totalAmount && formData.shares && (
               <div className="bg-gray-50 p-4 rounded-lg">
-                <h3 className="font-medium text-gray-900 mb-2">Bill Summary</h3>
-                <div className="text-sm text-gray-600 space-y-1">
-                  <p>
-                    Total: {formData.totalAmount} {formData.currency}
-                  </p>
-                  <p>Shares: {formData.shares} people</p>
-                  <p>
-                    Per person: {sharePrice} {formData.currency}
-                  </p>
+                <h3 className="font-medium text-gray-900 mb-3">Bill Summary</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Original Currency */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-800 text-sm">
+                      Original Amount
+                    </h4>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>
+                        Total: {formData.totalAmount} {formData.currency}
+                      </p>
+                      <p>Shares: {formData.shares} people</p>
+                      <p>
+                        Per person: {sharePrice} {formData.currency}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* USDT Conversion */}
+                  <div className="space-y-2">
+                    <h4 className="font-medium text-gray-800 text-sm flex items-center">
+                      USDT Equivalent
+                      {exchangeLoading && (
+                        <div className="ml-2 animate-spin rounded-full h-3 w-3 border-b-2 border-blue-600"></div>
+                      )}
+                    </h4>
+                    <div className="text-sm text-gray-600 space-y-1">
+                      <p>Total: {totalUSDT} USDT</p>
+                      <p>Blockchain: Base Network</p>
+                      <p>Per person: {sharePriceUSDT} USDT</p>
+                    </div>
+                  </div>
                 </div>
+
+                {exchangeError && (
+                  <div className="mt-3 text-xs text-orange-600 bg-orange-50 p-2 rounded">
+                    ⚠️ Using fallback exchange rates. Amounts may not be exact.
+                  </div>
+                )}
               </div>
             )}
 
