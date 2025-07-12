@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import { useCurrencyExchange } from '../hooks/useCurrencyExchange'
@@ -64,6 +64,24 @@ export default function CreateBill() {
 
   const [errors, setErrors] = useState<Partial<BillFormData>>({})
   const [billURL, setBillURL] = useState<string>('')
+  const [isOnline, setIsOnline] = useState(navigator.onLine)
+  const [formTouched, setFormTouched] = useState<
+    Partial<Record<keyof BillFormData, boolean>>
+  >({})
+
+  // Network connectivity monitoring
+  useEffect(() => {
+    const handleOnline = () => setIsOnline(true)
+    const handleOffline = () => setIsOnline(false)
+
+    window.addEventListener('online', handleOnline)
+    window.addEventListener('offline', handleOffline)
+
+    return () => {
+      window.removeEventListener('online', handleOnline)
+      window.removeEventListener('offline', handleOffline)
+    }
+  }, [])
 
   // Generate QR code when bill is created successfully
   useEffect(() => {
@@ -76,33 +94,101 @@ export default function CreateBill() {
 
   const handleInputChange = (field: keyof BillFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
+    setFormTouched((prev) => ({ ...prev, [field]: true }))
+
     // Clear error when user starts typing
     if (errors[field]) {
       setErrors((prev) => ({ ...prev, [field]: undefined }))
     }
+
+    // Real-time validation for better UX
+    if (formTouched[field]) {
+      validateField(field, value)
+    }
   }
 
+  const validateField = useCallback(
+    (field: keyof BillFormData, value?: string) => {
+      const fieldValue = value !== undefined ? value : formData[field]
+      let error: string | undefined
+
+      switch (field) {
+        case 'totalAmount':
+          if (!fieldValue || fieldValue.trim() === '') {
+            error = 'Total amount is required'
+          } else {
+            const amount = parseFloat(fieldValue)
+            if (isNaN(amount)) {
+              error = 'Please enter a valid number'
+            } else if (amount <= 0) {
+              error = 'Total amount must be greater than 0'
+            } else if (amount > 1000000) {
+              error = 'Total amount cannot exceed 1,000,000'
+            } else if (
+              fieldValue.includes('.') &&
+              (fieldValue.split('.')[1]?.length ?? 0) > 6
+            ) {
+              error = 'Maximum 6 decimal places allowed'
+            }
+          }
+          break
+
+        case 'shares':
+          if (!fieldValue || fieldValue.trim() === '') {
+            error = 'Number of shares is required'
+          } else {
+            const shares = parseInt(fieldValue)
+            if (isNaN(shares) || !Number.isInteger(Number(fieldValue))) {
+              error = 'Please enter a whole number'
+            } else if (shares <= 0) {
+              error = 'Number of shares must be at least 1'
+            } else if (shares > 100) {
+              error = 'Number of shares cannot exceed 100'
+            }
+          }
+          break
+
+        case 'description':
+          if (!fieldValue || fieldValue.trim() === '') {
+            error = 'Description is required'
+          } else if (fieldValue.trim().length < 3) {
+            error = 'Description must be at least 3 characters'
+          } else if (fieldValue.length > 200) {
+            error = 'Description cannot exceed 200 characters'
+          }
+          break
+
+        case 'currency':
+          if (!fieldValue) {
+            error = 'Please select a currency'
+          }
+          break
+      }
+
+      setErrors((prev) => ({ ...prev, [field]: error }))
+      return !error
+    },
+    [formData]
+  )
+
   const validateForm = (): boolean => {
-    const newErrors: Partial<BillFormData> = {}
+    const fields: (keyof BillFormData)[] = [
+      'totalAmount',
+      'currency',
+      'shares',
+      'description',
+    ]
+    const isValid = fields.every((field) => validateField(field))
 
-    if (!formData.totalAmount || parseFloat(formData.totalAmount) <= 0) {
-      newErrors.totalAmount = 'Total amount must be greater than 0'
-    }
+    // Mark all fields as touched for error display
+    setFormTouched({
+      totalAmount: true,
+      currency: true,
+      shares: true,
+      description: true,
+    })
 
-    if (!formData.shares || parseInt(formData.shares) <= 0) {
-      newErrors.shares = 'Number of shares must be greater than 0'
-    }
-
-    if (parseInt(formData.shares) > 100) {
-      newErrors.shares = 'Number of shares cannot exceed 100'
-    }
-
-    if (!formData.description.trim()) {
-      newErrors.description = 'Description is required'
-    }
-
-    setErrors(newErrors)
-    return Object.keys(newErrors).length === 0
+    return isValid
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -113,7 +199,15 @@ export default function CreateBill() {
     }
 
     if (!isConnected) {
-      alert('Please connect your wallet first')
+      setErrors({ totalAmount: 'Please connect your wallet to create bills' })
+      return
+    }
+
+    if (!isOnline) {
+      setErrors({
+        totalAmount:
+          'No internet connection. Please check your network and try again.',
+      })
       return
     }
 
@@ -134,6 +228,24 @@ export default function CreateBill() {
       }
     } catch (error) {
       console.error('Error creating bill:', error)
+
+      // Handle specific error types
+      let errorMessage = 'Failed to create bill. Please try again.'
+
+      if (error instanceof Error) {
+        if (error.message.includes('User rejected')) {
+          errorMessage = 'Transaction was cancelled by user'
+        } else if (error.message.includes('insufficient funds')) {
+          errorMessage = 'Insufficient funds for transaction'
+        } else if (error.message.includes('network')) {
+          errorMessage =
+            'Network error. Please check your connection and try again.'
+        } else if (error.message.includes('timeout')) {
+          errorMessage = 'Transaction timeout. Please try again.'
+        }
+      }
+
+      setErrors({ totalAmount: errorMessage })
     }
   }
 
@@ -147,6 +259,7 @@ export default function CreateBill() {
     })
     resetBillCreation()
     setErrors({})
+    setFormTouched({})
     setBillURL('')
   }
 
@@ -186,40 +299,67 @@ export default function CreateBill() {
               cryptocurrency
             </p>
 
-            {/* Exchange Rate Status */}
-            <div className="mt-4 p-3 bg-gray-50 rounded-lg">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  {exchangeLoading ? (
-                    <div className="flex items-center space-x-2">
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
-                      <span className="text-sm text-gray-600">
-                        Loading exchange rates...
+            {/* Connection and Exchange Rate Status */}
+            <div className="mt-4 space-y-2">
+              {/* Network Status */}
+              {!isOnline && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-lg">
+                  <div className="flex items-center space-x-2">
+                    <svg
+                      className="h-4 w-4 text-red-600"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                      />
+                    </svg>
+                    <span className="text-sm text-red-600">
+                      No internet connection - Bill creation unavailable
+                    </span>
+                  </div>
+                </div>
+              )}
+
+              {/* Exchange Rate Status */}
+              <div className="p-3 bg-gray-50 rounded-lg">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    {exchangeLoading ? (
+                      <div className="flex items-center space-x-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-blue-600"></div>
+                        <span className="text-sm text-gray-600">
+                          Loading exchange rates...
+                        </span>
+                      </div>
+                    ) : exchangeError ? (
+                      <div className="flex items-center space-x-2">
+                        <span className="text-sm text-orange-600">
+                          Using fallback rates
+                        </span>
+                        <button
+                          onClick={refresh}
+                          className="text-blue-600 hover:text-blue-800 text-sm underline"
+                        >
+                          Retry
+                        </button>
+                      </div>
+                    ) : (
+                      <span className="text-sm text-green-600">
+                        Exchange rates updated
                       </span>
-                    </div>
-                  ) : exchangeError ? (
-                    <div className="flex items-center space-x-2">
-                      <span className="text-sm text-orange-600">
-                        Using fallback rates
-                      </span>
-                      <button
-                        onClick={refresh}
-                        className="text-blue-600 hover:text-blue-800 text-sm underline"
-                      >
-                        Retry
-                      </button>
-                    </div>
-                  ) : (
-                    <span className="text-sm text-green-600">
-                      Exchange rates updated
+                    )}
+                  </div>
+                  {lastUpdated && (
+                    <span className="text-xs text-gray-500">
+                      {lastUpdated.toLocaleTimeString()}
                     </span>
                   )}
                 </div>
-                {lastUpdated && (
-                  <span className="text-xs text-gray-500">
-                    {lastUpdated.toLocaleTimeString()}
-                  </span>
-                )}
               </div>
             </div>
           </div>
@@ -260,7 +400,11 @@ export default function CreateBill() {
                 />
               </div>
               {errors.totalAmount && (
-                <p className="mt-1 text-sm text-red-600">
+                <p
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                  aria-live="polite"
+                >
                   {errors.totalAmount}
                 </p>
               )}
@@ -316,7 +460,13 @@ export default function CreateBill() {
                 disabled={isCreatingBill}
               />
               {errors.shares && (
-                <p className="mt-1 text-sm text-red-600">{errors.shares}</p>
+                <p
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                  aria-live="polite"
+                >
+                  {errors.shares}
+                </p>
               )}
               {formData.shares && parseInt(formData.shares) > 0 && (
                 <div className="mt-1 space-y-1">
@@ -354,10 +504,17 @@ export default function CreateBill() {
                 disabled={isCreatingBill}
               />
               {errors.description && (
-                <p className="mt-1 text-sm text-red-600">
+                <p
+                  className="mt-1 text-sm text-red-600"
+                  role="alert"
+                  aria-live="polite"
+                >
                   {errors.description}
                 </p>
               )}
+              <div className="mt-1 text-xs text-gray-500">
+                {formData.description.length}/200 characters
+              </div>
             </div>
 
             {/* Summary */}
@@ -408,14 +565,21 @@ export default function CreateBill() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={isCreatingBill || !isConnected}
+              disabled={isCreatingBill || !isConnected || !isOnline}
               className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                isCreatingBill || !isConnected
+                isCreatingBill || !isConnected || !isOnline
                   ? 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   : billCreated
                     ? 'bg-green-600 text-white'
                     : 'bg-blue-600 text-white hover:bg-blue-700'
               }`}
+              aria-describedby={
+                !isConnected
+                  ? 'connect-wallet-error'
+                  : !isOnline
+                    ? 'network-error'
+                    : undefined
+              }
             >
               {isCreatingBill ? (
                 <span className="flex items-center justify-center">
@@ -458,6 +622,10 @@ export default function CreateBill() {
                   </svg>
                   Bill Created Successfully!
                 </span>
+              ) : !isConnected ? (
+                'Connect Wallet to Create Bill'
+              ) : !isOnline ? (
+                'No Internet Connection'
               ) : (
                 'Create Bill'
               )}
