@@ -69,4 +69,18 @@ export const USDT_ABI = [
     outputs: [{ name: '', type: 'string' }],
     stateMutability: 'view',
   },
+  {
+    type: 'function',
+    name: 'faucet',
+    inputs: [],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
+  {
+    type: 'function',
+    name: 'mintToSelf',
+    inputs: [{ name: 'amount', type: 'uint256' }],
+    outputs: [],
+    stateMutability: 'nonpayable',
+  },
 ] as const

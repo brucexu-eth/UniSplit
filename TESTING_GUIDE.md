@@ -13,27 +13,50 @@
 cp .env.testnet .env
 
 # Update with your values:
-# - VITE_WALLETCONNECT_PROJECT_ID
+# - VITE_WALLETCONNECT_PROJECT_ID (get from https://cloud.walletconnect.com)
 # - PRIVATE_KEY (testnet wallet private key)
+
+# Example .env for Base Sepolia:
+VITE_BASE_RPC_URL=https://sepolia.base.org
+VITE_CHAIN_ID=84532
+VITE_USDT_CONTRACT_ADDRESS=0x036CbD53842c5426634e7929541eC2318f3dCF7e
+VITE_WALLETCONNECT_PROJECT_ID=your_project_id_here
+PRIVATE_KEY=your_testnet_private_key_here
 ```
 
 ## Testing Phases
 
 ### Phase 1: Smart Contract Deployment & Verification
 
-#### 1.1 **Deploy to Base Sepolia**
+#### 1.1 **Deploy Mock USDT (First Time Only)**
+```bash
+# Deploy Mock USDT contract for testing
+npm run deploy:mock-usdt
+
+# Copy the deployed USDT address to your .env file
+# VITE_USDT_CONTRACT_ADDRESS=<deployed_mock_usdt_address>
+```
+
+#### 1.2 **Deploy BillSplitter to Base Sepolia**
 ```bash
 # Deploy smart contract
 npm run deploy:testnet
 
 # Verify contract on BaseScan
 npm run verify:testnet
+
+# Copy the deployed contract address to your .env file
+# VITE_BILL_SPLITTER_CONTRACT_ADDRESS=<deployed_contract_address>
 ```
 
-#### 1.2 **Update Environment**
-After deployment, update `.env` with the deployed contract address:
+#### 1.3 **Get Test USDT**
 ```bash
-VITE_BILL_SPLITTER_CONTRACT_ADDRESS=<deployed_contract_address>
+# Start the development server
+npm run dev
+
+# Visit http://localhost:5173/create
+# Connect your wallet and click "Get 1,000 USDT" faucet button
+# This gives you test USDT for payments
 ```
 
 #### 1.3 **Contract Testing Checklist**

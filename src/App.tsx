@@ -2,6 +2,7 @@ import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import CreateBill from './pages/CreateBill'
 import BillPayment from './pages/BillPayment'
+import NetworkStatus from './components/NetworkStatus'
 import './App.css'
 
 function App() {
@@ -29,7 +30,10 @@ function App() {
                   </Link>
                 </nav>
               </div>
-              <ConnectButton />
+              <div className="flex items-center space-x-4">
+                <NetworkStatus />
+                <ConnectButton />
+              </div>
             </div>
           </div>
         </header>

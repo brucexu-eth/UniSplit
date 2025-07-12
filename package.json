@@ -19,6 +19,7 @@
     "deploy:base": "hardhat run scripts/deployBillSplitter.cjs --network base",
     "deploy:testnet": "hardhat run scripts/deployBillSplitter.cjs --network base-sepolia",
     "deploy:mainnet": "hardhat run scripts/deployBillSplitter.cjs --network base",
+    "deploy:mock-usdt": "hardhat run scripts/deployMockUSDT.cjs --network base-sepolia",
     "verify:testnet": "hardhat verify --network base-sepolia",
     "verify:mainnet": "hardhat verify --network base"
   },

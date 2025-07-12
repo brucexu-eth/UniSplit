@@ -8,6 +8,7 @@ import {
   generateBillURL,
   generateShareText,
 } from '../hooks/useQRCode'
+import USDTFaucet from '../components/USDTFaucet'
 
 interface BillFormData {
   totalAmount: string
@@ -372,6 +373,9 @@ export default function CreateBill() {
               <ConnectButton />
             </div>
           )}
+
+          {/* USDT Faucet for testnet */}
+          <USDTFaucet />
 
           <form onSubmit={handleSubmit} className="space-y-6">
             {/* Total Amount */}

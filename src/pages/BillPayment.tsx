@@ -5,6 +5,7 @@ import { useAccount } from 'wagmi'
 import { BillStatus } from '../contracts/BillSplitter'
 import { useBillReading } from '../hooks/useBillReading'
 import { useBillPayment } from '../hooks/useBillPayment'
+import USDTFaucet from '../components/USDTFaucet'
 
 interface BillPaymentState {
   shareQuantity: number
@@ -282,6 +283,9 @@ export default function BillPayment() {
                     <ConnectButton />
                   </div>
                 )}
+
+                {/* USDT Faucet for testnet */}
+                <USDTFaucet />
 
                 {/* Share Quantity Selector */}
                 <div className="mb-6">
