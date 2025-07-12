@@ -11,7 +11,13 @@ export const USDT_CONTRACT_ADDRESS =
   import.meta.env.VITE_USDT_CONTRACT_ADDRESS ||
   (isTestnet
     ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e' // Mock USDT on Base Sepolia
-    : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') // Real USDT on Base Mainnet
+    : '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2') // Real USDT on Base Mainnet
+
+export const USDC_CONTRACT_ADDRESS =
+  import.meta.env.VITE_USDC_CONTRACT_ADDRESS ||
+  (isTestnet
+    ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e' // Mock USDC (same as USDT for testing)
+    : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') // Real USDC on Base Mainnet
 
 // App configuration
 export const APP_NAME = import.meta.env.VITE_APP_NAME || 'UniSplit'
@@ -26,8 +32,29 @@ export const BILL_SPLITTER_CONTRACT_ADDRESS =
 
 export const CONTRACTS = {
   USDT: USDT_CONTRACT_ADDRESS,
+  USDC: USDC_CONTRACT_ADDRESS,
   BILL_SPLITTER: BILL_SPLITTER_CONTRACT_ADDRESS,
+  // Primary payment token (USDT for now, but both use same testnet address)
+  PAYMENT_TOKEN: USDT_CONTRACT_ADDRESS,
 } as const
+
+// Token configuration
+export const SUPPORTED_TOKENS = [
+  {
+    symbol: 'USDT',
+    name: 'Tether USD',
+    address: USDT_CONTRACT_ADDRESS,
+    decimals: 6,
+  },
+  {
+    symbol: 'USDC',
+    name: 'USD Coin',
+    address: USDC_CONTRACT_ADDRESS,
+    decimals: 6,
+  },
+] as const
+
+export type SupportedToken = typeof SUPPORTED_TOKENS[number]
 
 // Network configuration
 export const NETWORKS = {

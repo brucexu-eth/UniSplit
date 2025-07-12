@@ -6,7 +6,7 @@ import { BillStatus } from '../contracts/BillSplitterV2'
 import { useBillReading } from '../hooks/useBillReading'
 import { useBillPayment } from '../hooks/useBillPayment'
 import { useBillUpdates } from '../hooks/useBillUpdates'
-import USDTFaucet from '../components/USDTFaucet'
+import TokenFaucet from '../components/TokenFaucet'
 import BillUpdateForm from '../components/BillUpdateForm'
 import CreatorSelfPayment from '../components/CreatorSelfPayment'
 
@@ -374,7 +374,7 @@ export default function BillPayment() {
                 )}
 
                 {/* USDT Faucet for testnet */}
-                <USDTFaucet />
+                <TokenFaucet />
 
                 {/* Share Quantity Selector */}
                 <div className="mb-6">

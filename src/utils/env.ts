@@ -5,6 +5,7 @@ interface RequiredEnvVars {
   VITE_BASE_RPC_URL: string
   VITE_CHAIN_ID: string
   VITE_USDT_CONTRACT_ADDRESS: string
+  VITE_USDC_CONTRACT_ADDRESS: string
 }
 
 interface OptionalEnvVars {
@@ -20,6 +21,7 @@ export function validateEnvironment(): boolean {
     'VITE_BASE_RPC_URL',
     'VITE_CHAIN_ID',
     'VITE_USDT_CONTRACT_ADDRESS',
+    'VITE_USDC_CONTRACT_ADDRESS',
   ]
 
   const missingVars = requiredVars.filter(

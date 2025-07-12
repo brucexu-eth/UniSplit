@@ -8,7 +8,7 @@ import {
 import { parseUnits } from 'viem'
 import { BILL_SPLITTER_V2_ABI } from '../contracts/BillSplitterV2'
 import { CONTRACTS } from '../config/constants'
-import { USDT_ABI } from '../contracts/usdt'
+import { ERC20_ABI } from '../contracts/erc20'
 
 interface PaymentState {
   isLoading: boolean
@@ -59,7 +59,7 @@ export function useBillPayment(): UseBillPaymentResult {
   // Check current USDT allowance
   const { data: allowance = BigInt(0) } = useReadContract({
     address: CONTRACTS.USDT as `0x${string}`,
-    abi: USDT_ABI,
+    abi: ERC20_ABI,
     functionName: 'allowance',
     args:
       address && CONTRACTS.BILL_SPLITTER
@@ -105,7 +105,7 @@ export function useBillPayment(): UseBillPaymentResult {
 
       writeApproval({
         address: CONTRACTS.USDT as `0x${string}`,
-        abi: USDT_ABI,
+        abi: ERC20_ABI,
         functionName: 'approve',
         args: [CONTRACTS.BILL_SPLITTER as `0x${string}`, maxAmount],
       })
