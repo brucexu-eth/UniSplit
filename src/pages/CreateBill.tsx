@@ -1,8 +1,13 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
 import { useCurrencyExchange } from '../hooks/useCurrencyExchange'
 import { useBillCreation } from '../hooks/useBillCreation'
+import {
+  useQRCode,
+  generateBillURL,
+  generateShareText,
+} from '../hooks/useQRCode'
 
 interface BillFormData {
   totalAmount: string
@@ -41,6 +46,15 @@ export default function CreateBill() {
     reset: resetBillCreation,
   } = useBillCreation()
 
+  const {
+    qrCodeDataURL,
+    isGenerating: isGeneratingQR,
+    error: qrError,
+    generateQRCode,
+    copyToClipboard,
+    shareURL,
+  } = useQRCode()
+
   const [formData, setFormData] = useState<BillFormData>({
     totalAmount: '',
     currency: 'NZD',
@@ -49,6 +63,16 @@ export default function CreateBill() {
   })
 
   const [errors, setErrors] = useState<Partial<BillFormData>>({})
+  const [billURL, setBillURL] = useState<string>('')
+
+  // Generate QR code when bill is created successfully
+  useEffect(() => {
+    if (billCreated && billId) {
+      const url = generateBillURL(billId)
+      setBillURL(url)
+      generateQRCode(url)
+    }
+  }, [billCreated, billId, generateQRCode])
 
   const handleInputChange = (field: keyof BillFormData, value: string) => {
     setFormData((prev) => ({ ...prev, [field]: value }))
@@ -123,6 +147,7 @@ export default function CreateBill() {
     })
     resetBillCreation()
     setErrors({})
+    setBillURL('')
   }
 
   const sharePrice =
@@ -442,7 +467,7 @@ export default function CreateBill() {
           {/* Success State */}
           {billCreated && billId && txHash && (
             <div className="mt-8 p-6 bg-green-50 border border-green-200 rounded-lg">
-              <div className="flex items-center mb-4">
+              <div className="flex items-center mb-6">
                 <svg
                   className="h-8 w-8 text-green-600 mr-3"
                   fill="none"
@@ -456,49 +481,262 @@ export default function CreateBill() {
                     d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z"
                   ></path>
                 </svg>
-                <h3 className="text-lg font-bold text-green-900">
+                <h3 className="text-2xl font-bold text-green-900">
                   Bill Created Successfully!
                 </h3>
               </div>
 
-              <div className="space-y-3 text-sm">
-                <div>
-                  <span className="font-medium text-green-800">Bill ID:</span>
-                  <code className="ml-2 px-2 py-1 bg-green-100 rounded text-green-700">
-                    {billId.slice(0, 10)}...{billId.slice(-8)}
-                  </code>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Left Column - Bill Details */}
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-3">
+                      Bill Details
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Description:
+                        </span>
+                        <span className="ml-2 text-gray-600">
+                          {formData.description}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Total Amount:
+                        </span>
+                        <span className="ml-2 text-gray-600">
+                          {formData.totalAmount} {formData.currency}
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Shares:
+                        </span>
+                        <span className="ml-2 text-gray-600">
+                          {formData.shares} people
+                        </span>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Per Person:
+                        </span>
+                        <span className="ml-2 text-gray-600">
+                          {sharePrice} {formData.currency} ({sharePriceUSDT}{' '}
+                          USDT)
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white p-4 rounded-lg border border-green-200">
+                    <h4 className="font-semibold text-green-800 mb-3">
+                      Blockchain Info
+                    </h4>
+                    <div className="space-y-2 text-sm">
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Bill ID:
+                        </span>
+                        <code className="ml-2 px-2 py-1 bg-gray-100 rounded text-gray-700 text-xs">
+                          {billId.slice(0, 10)}...{billId.slice(-8)}
+                        </code>
+                      </div>
+                      <div>
+                        <span className="font-medium text-gray-700">
+                          Transaction:
+                        </span>
+                        <a
+                          href={`https://basescan.org/tx/${txHash}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="ml-2 text-green-600 hover:text-green-800 underline text-xs"
+                        >
+                          View on Basescan ↗
+                        </a>
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div>
-                  <span className="font-medium text-green-800">
-                    Transaction:
-                  </span>
-                  <a
-                    href={`https://basescan.org/tx/${txHash}`}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="ml-2 text-green-600 hover:text-green-800 underline"
-                  >
-                    View on Basescan
-                  </a>
+
+                {/* Right Column - QR Code and Sharing */}
+                <div className="space-y-4">
+                  <div className="bg-white p-4 rounded-lg border border-green-200 text-center">
+                    <h4 className="font-semibold text-green-800 mb-3">
+                      Share This Bill
+                    </h4>
+
+                    {/* QR Code */}
+                    <div className="mb-4">
+                      {isGeneratingQR ? (
+                        <div className="flex items-center justify-center h-64">
+                          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-green-600"></div>
+                          <span className="ml-2 text-gray-600">
+                            Generating QR Code...
+                          </span>
+                        </div>
+                      ) : qrError ? (
+                        <div className="h-64 flex items-center justify-center text-red-600">
+                          <div className="text-center">
+                            <svg
+                              className="h-12 w-12 mx-auto mb-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"
+                              ></path>
+                            </svg>
+                            <p className="text-sm">
+                              Failed to generate QR code
+                            </p>
+                          </div>
+                        </div>
+                      ) : qrCodeDataURL ? (
+                        <div>
+                          <img
+                            src={qrCodeDataURL}
+                            alt="Bill QR Code"
+                            className="mx-auto rounded-lg shadow-sm border border-gray-200"
+                            style={{ maxWidth: '200px', height: 'auto' }}
+                          />
+                          <p className="text-xs text-gray-500 mt-2">
+                            Scan with your phone to share this bill
+                          </p>
+                        </div>
+                      ) : (
+                        <div className="h-64 flex items-center justify-center text-gray-400">
+                          <div className="text-center">
+                            <svg
+                              className="h-12 w-12 mx-auto mb-2"
+                              fill="none"
+                              stroke="currentColor"
+                              viewBox="0 0 24 24"
+                            >
+                              <path
+                                strokeLinecap="round"
+                                strokeLinejoin="round"
+                                strokeWidth="2"
+                                d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                              ></path>
+                            </svg>
+                            <p className="text-sm">QR Code will appear here</p>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Share URL */}
+                    <div className="mb-4">
+                      <div className="bg-gray-50 p-3 rounded border text-left">
+                        <label className="block text-xs font-medium text-gray-700 mb-1">
+                          Bill URL:
+                        </label>
+                        <input
+                          type="text"
+                          value={billURL}
+                          readOnly
+                          className="w-full text-xs bg-transparent border-none outline-none text-gray-600"
+                        />
+                      </div>
+                    </div>
+                  </div>
                 </div>
-                <div className="mt-4 flex space-x-3">
-                  <button
-                    onClick={handleCreateAnother}
-                    className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors"
+              </div>
+
+              {/* Action Buttons */}
+              <div className="mt-6 flex flex-wrap gap-3">
+                <button
+                  onClick={async () => {
+                    const success = await copyToClipboard(billURL)
+                    alert(
+                      success
+                        ? 'Bill URL copied to clipboard!'
+                        : 'Failed to copy URL'
+                    )
+                  }}
+                  className="px-4 py-2 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors flex items-center"
+                >
+                  <svg
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    Create Another Bill
-                  </button>
-                  <button
-                    onClick={() => {
-                      const billUrl = `${window.location.origin}/bill/${billId}`
-                      navigator.clipboard.writeText(billUrl)
-                      alert('Bill URL copied to clipboard!')
-                    }}
-                    className="px-4 py-2 bg-white text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors"
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"
+                    ></path>
+                  </svg>
+                  Copy URL
+                </button>
+
+                <button
+                  onClick={async () => {
+                    const shareText = generateShareText(
+                      formData.totalAmount,
+                      formData.currency,
+                      formData.description,
+                      billURL
+                    )
+                    const success = await shareURL(
+                      billURL,
+                      `UniSplit Bill: ${formData.description}`
+                    )
+                    if (!success) {
+                      // Fallback: copy share text to clipboard
+                      const fallbackSuccess = await copyToClipboard(shareText)
+                      alert(
+                        fallbackSuccess
+                          ? 'Share text copied to clipboard!'
+                          : 'Failed to share'
+                      )
+                    }
+                  }}
+                  className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors flex items-center"
+                >
+                  <svg
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
                   >
-                    Copy Bill URL
-                  </button>
-                </div>
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.367 2.684 3 3 0 00-5.367-2.684z"
+                    ></path>
+                  </svg>
+                  Share Bill
+                </button>
+
+                <button
+                  onClick={handleCreateAnother}
+                  className="px-4 py-2 bg-white text-green-600 border border-green-600 rounded-lg hover:bg-green-50 transition-colors flex items-center"
+                >
+                  <svg
+                    className="h-4 w-4 mr-2"
+                    fill="none"
+                    stroke="currentColor"
+                    viewBox="0 0 24 24"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      strokeWidth="2"
+                      d="M12 6v6m0 0v6m0-6h6m-6 0H6"
+                    ></path>
+                  </svg>
+                  Create Another Bill
+                </button>
               </div>
             </div>
           )}

@@ -187,7 +187,7 @@
               3
             ],
             "details": "After successful bill creation, generate shareable URL in format /#/bill/<id> using the generated bill ID. Integrate qrcode library to generate QR code containing the bill URL. Display both text URL and QR code in a success modal or dedicated section. Implement copy-to-clipboard functionality for the URL. Add social sharing options if required.",
-            "status": "pending",
+            "status": "done",
             "testStrategy": "Test URL generation with different bill IDs. Verify QR code generation and scanning functionality. Test clipboard copy functionality across browsers."
           },
           {
@@ -360,7 +360,7 @@
     ],
     "metadata": {
       "created": "2025-07-12T01:30:30.939Z",
-      "updated": "2025-07-12T02:38:15.102Z",
+      "updated": "2025-07-12T02:44:30.233Z",
       "description": "Tasks for master context"
     }
   }
