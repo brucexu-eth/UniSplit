@@ -8,11 +8,6 @@ interface RequiredEnvVars {
   VITE_USDC_CONTRACT_ADDRESS: string
 }
 
-interface OptionalEnvVars {
-  VITE_APP_NAME?: string
-  VITE_APP_DESCRIPTION?: string
-}
-
 type EnvVars = RequiredEnvVars & OptionalEnvVars
 
 export function validateEnvironment(): boolean {

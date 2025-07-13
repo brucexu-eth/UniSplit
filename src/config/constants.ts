@@ -7,22 +7,13 @@ export const CHAIN_ID = Number(import.meta.env.VITE_CHAIN_ID) || 8453
 
 // Network-specific configurations
 const isTestnet = CHAIN_ID === 84532
-export const USDT_CONTRACT_ADDRESS =
-  import.meta.env.VITE_USDT_CONTRACT_ADDRESS ||
-  (isTestnet
-    ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e' // Mock USDT on Base Sepolia
-    : '0xfde4C96c8593536E31F229EA8f37b2ADa2699bb2') // Real USDT on Base Mainnet
+export const USDT_CONTRACT_ADDRESS = import.meta.env.VITE_USDT_CONTRACT_ADDRESS
 
-export const USDC_CONTRACT_ADDRESS =
-  import.meta.env.VITE_USDC_CONTRACT_ADDRESS ||
-  (isTestnet
-    ? '0x036CbD53842c5426634e7929541eC2318f3dCF7e' // Mock USDC (same as USDT for testing)
-    : '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913') // Real USDC on Base Mainnet
+export const USDC_CONTRACT_ADDRESS = import.meta.env.VITE_USDC_CONTRACT_ADDRESS
 
 // App configuration
-export const APP_NAME = import.meta.env.VITE_APP_NAME || 'UniSplit'
+export const APP_NAME = 'UniSplit'
 export const APP_DESCRIPTION =
-  import.meta.env.VITE_APP_DESCRIPTION ||
   'Split bills effortlessly with cryptocurrency payments'
 
 // Contract addresses
@@ -54,7 +45,7 @@ export const SUPPORTED_TOKENS = [
   },
 ] as const
 
-export type SupportedToken = typeof SUPPORTED_TOKENS[number]
+export type SupportedToken = (typeof SUPPORTED_TOKENS)[number]
 
 // Network configuration
 export const NETWORKS = {
