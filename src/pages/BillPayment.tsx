@@ -7,9 +7,12 @@ import { useBillReading } from '../hooks/useBillReading'
 import { useBillPayment } from '../hooks/useBillPayment'
 import { useBillUpdates } from '../hooks/useBillUpdates'
 import { useTokenAllowance } from '../hooks/useTokenAllowance'
+import { useBillPayments } from '../hooks/useBillPayments'
+import { useMultipleENS } from '../hooks/useENS'
 import BillUpdateForm from '../components/BillUpdateForm'
 import CreatorSelfPayment from '../components/CreatorSelfPayment'
 import { getTokenDisplayName, formatTokenAmount } from '../utils/tokens'
+import { CURRENT_NETWORK } from '../config/constants'
 
 interface BillPaymentState {
   shareQuantity: number
@@ -56,6 +59,17 @@ export default function BillPayment() {
     isLoading: isClosing,
     error: closeError,
   } = useBillUpdates()
+
+  // Get bill payments
+  const { 
+    payments, 
+    isLoading: isPaymentsLoading, 
+    error: paymentsError 
+  } = useBillPayments(billId, bill || undefined)
+
+  // Get ENS names for all payers
+  const payerAddresses = payments.map(p => p.payer)
+  const { ensNames } = useMultipleENS(payerAddresses)
 
   const [state, setState] = useState<BillPaymentState>({
     shareQuantity: 1,
@@ -321,6 +335,110 @@ export default function BillPayment() {
                 </div>
               </div>
             </div>
+
+            {/* Payers List */}
+            {payments.length > 0 && (
+              <div className="bg-white rounded-lg shadow-md p-6">
+                <h2 className="text-xl font-semibold text-gray-900 mb-4">
+                  Payment History
+                </h2>
+                
+                {isPaymentsLoading && (
+                  <div className="flex items-center justify-center py-4">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600 mr-2"></div>
+                    <span className="text-gray-600">Loading payments...</span>
+                  </div>
+                )}
+
+                {paymentsError && (
+                  <div className="p-3 bg-red-50 border border-red-200 rounded-lg mb-4">
+                    <p className="text-red-800 text-sm">{paymentsError}</p>
+                  </div>
+                )}
+
+                <div className="space-y-3">
+                  {payments.map((payment, index) => {
+                    const totalPaid = formatTokenAmount(payment.amount, 6)
+                    const ensName = ensNames[payment.payer]
+                    const payerDisplay = ensName || (payment.payer.slice(0, 6) + '...' + payment.payer.slice(-4))
+                    const txUrl = `${CURRENT_NETWORK.blockExplorer}/tx/${payment.transactionHash}`
+                    
+                    return (
+                      <div key={`${payment.payer}-${index}`} className="flex items-center justify-between p-4 bg-gray-50 rounded-lg">
+                        <div className="flex items-center space-x-3">
+                          <div className="h-10 w-10 bg-blue-100 rounded-full flex items-center justify-center">
+                            <svg className="h-5 w-5 text-blue-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+                            </svg>
+                          </div>
+                          <div className="flex-1">
+                            <div className="flex items-center space-x-2">
+                              <p className="font-medium text-gray-900">
+                                {payerDisplay}
+                              </p>
+                              {payment.isCreatorInitialPayment && (
+                                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                  Creator
+                                </span>
+                              )}
+                            </div>
+                            {ensName && (
+                              <p className="text-xs text-gray-500 font-mono">
+                                {payment.payer.slice(0, 6) + '...' + payment.payer.slice(-4)}
+                              </p>
+                            )}
+                            <div className="flex items-center space-x-2">
+                              <p className="text-sm text-gray-600">
+                                {payment.sharesPaid} share{payment.sharesPaid !== 1 ? 's' : ''} paid
+                              </p>
+                              {!payment.isCreatorInitialPayment && (
+                                <a
+                                  href={txUrl}
+                                  target="_blank"
+                                  rel="noopener noreferrer"
+                                  className="inline-flex items-center text-xs text-blue-600 hover:text-blue-800"
+                                  title="View transaction"
+                                >
+                                  <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14" />
+                                  </svg>
+                                  Tx
+                                </a>
+                              )}
+                              {payment.isCreatorInitialPayment && (
+                                <span className="inline-flex items-center text-xs text-gray-500">
+                                  <svg className="h-3 w-3 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 100 4m0-4v2m0-6V4" />
+                                  </svg>
+                                  Initial payment
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                        </div>
+                        <div className="text-right">
+                          <p className="font-semibold text-gray-900">
+                            {totalPaid} {tokenSymbol}
+                          </p>
+                          <p className="text-sm text-gray-600">
+                            {sharePriceFormatted} × {payment.sharesPaid}
+                          </p>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+
+                {payments.length === 0 && !isPaymentsLoading && (
+                  <div className="text-center py-6 text-gray-500">
+                    <svg className="h-12 w-12 mx-auto mb-3 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M17 9V7a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2m2 4h10a2 2 0 002-2v-6a2 2 0 00-2-2H9a2 2 0 00-2 2v6a2 2 0 002 2zm7-5a2 2 0 11-4 0 2 2 0 014 0z" />
+                    </svg>
+                    <p>No payments yet</p>
+                  </div>
+                )}
+              </div>
+            )}
 
             {/* Creator Controls */}
             {address === bill.creator && bill.status === BillStatus.Active && (
