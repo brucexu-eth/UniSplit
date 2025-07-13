@@ -35,7 +35,7 @@ contract BillSplitterV2 is ReentrancyGuard, Ownable {
         address indexed token,
         uint256 sharePrice,
         uint8 totalShares,
-        uint8 creatorShares,
+        uint8 paidShares,
         string description
     );
 
@@ -74,7 +74,7 @@ contract BillSplitterV2 is ReentrancyGuard, Ownable {
      * @param token ERC20 token address for payments
      * @param sharePrice Price per share in token units
      * @param totalShares Total number of shares
-     * @param creatorShares Number of shares creator is paying for themselves
+     * @param paidShares Default is 0, or number of shares paid by the creator
      * @param description Optional description of the bill
      */
     function createBill(
@@ -82,31 +82,30 @@ contract BillSplitterV2 is ReentrancyGuard, Ownable {
         address token,
         uint256 sharePrice,
         uint8 totalShares,
-        uint8 creatorShares,
+        uint8 paidShares,
         string calldata description
     ) external {
         if (billExists[billId]) revert BillAlreadyExists();
         if (token == address(0)) revert InvalidToken();
         if (sharePrice == 0) revert InvalidSharePrice();
         if (totalShares == 0 || totalShares > 100) revert InvalidShares();
-        if (creatorShares > totalShares) revert ExcessiveShares();
 
         bills[billId] = Bill({
             creator: msg.sender,
             token: token,
             sharePrice: sharePrice,
             totalShares: totalShares,
-            paidShares: creatorShares,
+            paidShares: paidShares,
             status: BillStatus.Active,
             createdAt: block.timestamp
         });
 
         billExists[billId] = true;
 
-        emit BillCreated(billId, msg.sender, token, sharePrice, totalShares, creatorShares, description);
+        emit BillCreated(billId, msg.sender, token, sharePrice, totalShares, paidShares, description);
 
         // Auto-close if creator paid all shares
-        if (creatorShares >= totalShares) {
+        if (paidShares >= totalShares) {
             bills[billId].status = BillStatus.Closed;
             emit BillClosed(billId);
         }
@@ -131,7 +130,7 @@ contract BillSplitterV2 is ReentrancyGuard, Ownable {
         if (bill.creator != msg.sender) revert OnlyCreator();
         if (bill.status != BillStatus.Active) revert BillNotActive();
         if (newSharePrice == 0) revert InvalidSharePrice();
-        if (newTotalShares == 0 || newTotalShares > 100) revert InvalidShares();
+        if (newTotalShares == 0) revert InvalidShares();
         if (newTotalShares < bill.paidShares) revert InvalidShares(); // Can't reduce below paid shares
 
         bill.sharePrice = newSharePrice;
