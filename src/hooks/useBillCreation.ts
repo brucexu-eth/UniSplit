@@ -12,7 +12,7 @@ interface BillData {
   totalAmount: string
   currency: string
   shares: string
-  creatorShares: string
+  paidShares: string
   description: string
   tokenAddress: string
 }
@@ -115,7 +115,7 @@ export function useBillCreation(): UseBillCreationResult {
             billData.tokenAddress as `0x${string}`,
             sharePrice,
             parseInt(billData.shares),
-            parseInt(billData.creatorShares),
+            parseInt(billData.paidShares),
             billData.description.trim() || '', // Use empty string if no description
           ],
         })

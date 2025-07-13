@@ -13,7 +13,9 @@ interface BillFormData {
   totalAmount: string
   currency: string
   shares: string
+  paidShares: string
   description: string
+  tokenAddress: string
 }
 
 const CURRENCIES = [
@@ -59,7 +61,9 @@ export default function CreateBill() {
     totalAmount: '',
     currency: 'NZD',
     shares: '',
+    paidShares: '0',
     description: '',
+    tokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913', // Default to USDC
   })
 
   const [errors, setErrors] = useState<Partial<BillFormData>>({})
@@ -256,7 +260,9 @@ export default function CreateBill() {
       totalAmount: '',
       currency: 'NZD',
       shares: '',
+      paidShares: '0',
       description: '',
+      tokenAddress: '0x833589fCD6eDb6E08f4c7C32D4f71b54bdA02913',
     })
     resetBillCreation()
     setErrors({})

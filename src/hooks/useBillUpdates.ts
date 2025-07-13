@@ -23,7 +23,6 @@ interface UseBillUpdatesResult extends UpdateState {
     newTotalShares: number,
     newDescription: string
   ) => Promise<boolean>
-  creatorSelfPayment: (billId: string, shareCount: number) => Promise<boolean>
   closeBill: (billId: string) => Promise<boolean>
   reset: () => void
 }
@@ -105,49 +104,6 @@ export function useBillUpdates(): UseBillUpdatesResult {
     [address, writeContract]
   )
 
-  const creatorSelfPayment = useCallback(
-    async (billId: string, shareCount: number): Promise<boolean> => {
-      if (!address) {
-        setState((prev) => ({
-          ...prev,
-          isError: true,
-          error: 'Wallet not connected',
-        }))
-        return false
-      }
-
-      try {
-        setState((prev) => ({
-          ...prev,
-          isLoading: true,
-          isError: false,
-          error: null,
-        }))
-
-        writeContract({
-          address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-          abi: BILL_SPLITTER_V2_ABI,
-          functionName: 'creatorSelfPayment',
-          args: [billId as `0x${string}`, shareCount],
-        })
-
-        return true
-      } catch (error) {
-        console.error('Error with creator self payment:', error)
-        setState((prev) => ({
-          ...prev,
-          isLoading: false,
-          isError: true,
-          error:
-            error instanceof Error
-              ? error.message
-              : 'Failed to process self payment',
-        }))
-        return false
-      }
-    },
-    [address, writeContract]
-  )
 
   const closeBill = useCallback(
     async (billId: string): Promise<boolean> => {
@@ -213,7 +169,6 @@ export function useBillUpdates(): UseBillUpdatesResult {
     error,
     txHash: txHash || state.txHash,
     updateBill,
-    creatorSelfPayment,
     closeBill,
     reset,
   }

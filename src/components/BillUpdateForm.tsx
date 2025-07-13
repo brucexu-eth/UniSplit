@@ -35,7 +35,7 @@ export default function BillUpdateForm({
   const [formData, setFormData] = useState<UpdateFormData>({
     sharePrice: (Number(bill.sharePrice) / 1e6).toFixed(6),
     totalShares: bill.totalShares.toString(),
-    description: bill.description,
+    description: '', // Description not stored in V2 contract
   })
 
   const [errors, setErrors] = useState<Partial<UpdateFormData>>({})

@@ -258,12 +258,7 @@ export default function BillPayment() {
               {/* Bill Details Grid */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="space-y-4">
-                  <div>
-                    <label className="text-sm font-medium text-gray-700">
-                      Description
-                    </label>
-                    <p className="text-gray-900">{bill.description}</p>
-                  </div>
+                  {/* Note: Description not available in V2 contract storage */}
                   <div>
                     <label className="text-sm font-medium text-gray-700">
                       Share Price

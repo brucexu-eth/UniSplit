@@ -15,7 +15,7 @@
     "compile": "hardhat compile",
     "test:contracts": "hardhat test",
     "deploy:local": "hardhat run scripts/deployBillSplitter.cjs --network hardhat",
-    "deploy:base-sepolia": "hardhat run scripts/deployBillSplitter.cjs --network base-sepolia",
+    "deploy:base-sepolia": "hardhat run scripts/deploy-v2.cjs --network base-sepolia",
     "deploy:base": "hardhat run scripts/deployBillSplitter.cjs --network base",
     "deploy:testnet": "hardhat run scripts/deployBillSplitter.cjs --network base-sepolia",
     "deploy:mainnet": "hardhat run scripts/deployBillSplitter.cjs --network base",

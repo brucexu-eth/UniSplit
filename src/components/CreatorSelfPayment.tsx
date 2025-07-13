@@ -1,7 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { BillV2, BillStatus } from '../contracts/BillSplitterV2'
-import { useBillUpdates } from '../hooks/useBillUpdates'
+import { useBillPayment } from '../hooks/useBillPayment'
 
 interface CreatorSelfPaymentProps {
   bill: BillV2
@@ -16,13 +16,13 @@ export default function CreatorSelfPayment({
 }: CreatorSelfPaymentProps) {
   const { isConnected, address } = useAccount()
   const {
-    creatorSelfPayment,
+    payBill,
     isLoading,
     isSuccess,
     isError,
     error,
     reset,
-  } = useBillUpdates()
+  } = useBillPayment()
 
   const [shareCount, setShareCount] = useState(1)
   const [localError, setLocalError] = useState<string | null>(null)
@@ -55,7 +55,7 @@ export default function CreatorSelfPayment({
       return
     }
 
-    const success = await creatorSelfPayment(billId, shareCount)
+    const success = await payBill(billId as `0x${string}`, bill.token as `0x${string}`, shareCount)
     if (!success && error) {
       setLocalError(error)
     }
