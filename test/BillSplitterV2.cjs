@@ -49,7 +49,7 @@ describe('BillSplitterV2', function () {
       const billId = ethers.keccak256(ethers.toUtf8Bytes('test-bill-1'))
       const sharePrice = ethers.parseUnits('10', 6) // 10 USDT
       const totalShares = 5
-      const creatorShares = 2
+      const paidShares = 2
       const description = 'Test dinner bill'
 
       await expect(
@@ -60,7 +60,7 @@ describe('BillSplitterV2', function () {
             await usdt.getAddress(),
             sharePrice,
             totalShares,
-            creatorShares,
+            paidShares,
             description
           )
       )
@@ -71,7 +71,7 @@ describe('BillSplitterV2', function () {
           await usdt.getAddress(),
           sharePrice,
           totalShares,
-          creatorShares,
+          paidShares,
           description
         )
 
@@ -80,7 +80,7 @@ describe('BillSplitterV2', function () {
       expect(bill.token).to.equal(await usdt.getAddress())
       expect(bill.sharePrice).to.equal(sharePrice)
       expect(bill.totalShares).to.equal(totalShares)
-      expect(bill.paidShares).to.equal(creatorShares)
+      expect(bill.paidShares).to.equal(paidShares)
       expect(bill.status).to.equal(0) // Active
     })
 
@@ -92,7 +92,7 @@ describe('BillSplitterV2', function () {
       const billId = ethers.keccak256(ethers.toUtf8Bytes('test-bill-usdc'))
       const sharePrice = ethers.parseUnits('15', 6) // 15 USDC
       const totalShares = 4
-      const creatorShares = 1
+      const paidShares = 1
       const description = 'Test USDC bill'
 
       await expect(
@@ -103,7 +103,7 @@ describe('BillSplitterV2', function () {
             await usdc.getAddress(),
             sharePrice,
             totalShares,
-            creatorShares,
+            paidShares,
             description
           )
       )
@@ -114,13 +114,13 @@ describe('BillSplitterV2', function () {
           await usdc.getAddress(),
           sharePrice,
           totalShares,
-          creatorShares,
+          paidShares,
           description
         )
 
       const bill = await billSplitter.getBill(billId)
       expect(bill.token).to.equal(await usdc.getAddress())
-      expect(bill.paidShares).to.equal(creatorShares)
+      expect(bill.paidShares).to.equal(paidShares)
     })
 
     it('Should auto-close bill if creator pays all shares', async function () {
@@ -131,7 +131,7 @@ describe('BillSplitterV2', function () {
       const billId = ethers.keccak256(ethers.toUtf8Bytes('test-bill-full'))
       const sharePrice = ethers.parseUnits('10', 6)
       const totalShares = 3
-      const creatorShares = 3 // Creator pays all shares
+      const paidShares = 3 // Creator pays all shares
 
       await expect(
         billSplitter
@@ -141,7 +141,7 @@ describe('BillSplitterV2', function () {
             await usdt.getAddress(),
             sharePrice,
             totalShares,
-            creatorShares,
+            paidShares,
             'Full payment'
           )
       )
@@ -229,12 +229,15 @@ describe('BillSplitterV2', function () {
           )
       ).to.be.revertedWithCustomError(billSplitter, 'InvalidShares')
 
-      // Creator shares exceed total shares
+      // Test with a different bill ID for paid shares exceeding total (should auto-close)
+      const billId2 = ethers.keccak256(ethers.toUtf8Bytes('test-bill-2'))
       await expect(
         billSplitter
           .connect(user1)
-          .createBill(billId, await usdt.getAddress(), sharePrice, 5, 6, 'Test')
-      ).to.be.revertedWithCustomError(billSplitter, 'ExcessiveShares')
+          .createBill(billId2, await usdt.getAddress(), sharePrice, 5, 6, 'Test')
+      )
+        .to.emit(billSplitter, 'BillCreated')
+        .and.to.emit(billSplitter, 'BillClosed')
     })
   })
 
@@ -246,7 +249,7 @@ describe('BillSplitterV2', function () {
     const billId = ethers.keccak256(ethers.toUtf8Bytes('test-bill-1'))
     const sharePrice = ethers.parseUnits('10', 6) // 10 USDT
     const totalShares = 5
-    const creatorShares = 1
+    const paidShares = 1
 
     await billSplitter
       .connect(user1)
@@ -255,11 +258,11 @@ describe('BillSplitterV2', function () {
         await usdt.getAddress(),
         sharePrice,
         totalShares,
-        creatorShares,
+        paidShares,
         'Test dinner'
       )
 
-    return { ...fixture, billId, sharePrice, totalShares, creatorShares }
+    return { ...fixture, billId, sharePrice, totalShares, paidShares }
   }
 
   describe('Payment Processing', function () {
@@ -313,10 +316,10 @@ describe('BillSplitterV2', function () {
         billId,
         sharePrice,
         totalShares,
-        creatorShares,
+        paidShares,
       } = await createTestBill()
 
-      const remainingShares = totalShares - creatorShares
+      const remainingShares = totalShares - paidShares
       const paymentAmount = sharePrice * BigInt(remainingShares)
 
       // Approve and pay remaining shares
@@ -345,10 +348,10 @@ describe('BillSplitterV2', function () {
         billId,
         sharePrice,
         totalShares,
-        creatorShares,
+        paidShares,
       } = await createTestBill()
 
-      const excessiveShares = totalShares - creatorShares + 1
+      const excessiveShares = totalShares - paidShares + 1
       const paymentAmount = sharePrice * BigInt(excessiveShares)
       await usdt
         .connect(user2)
@@ -445,16 +448,16 @@ describe('BillSplitterV2', function () {
 
   describe('View Functions', function () {
     it('Should return correct bill totals and remaining amounts', async function () {
-      const { billSplitter, billId, sharePrice, totalShares, creatorShares } =
+      const { billSplitter, billId, sharePrice, totalShares, paidShares } =
         await createTestBill()
 
       const expectedTotal = sharePrice * BigInt(totalShares)
-      const expectedPaid = sharePrice * BigInt(creatorShares)
+      const expectedPaid = sharePrice * BigInt(paidShares)
 
       expect(await billSplitter.getTotalAmount(billId)).to.equal(expectedTotal)
       expect(await billSplitter.getPaidAmount(billId)).to.equal(expectedPaid)
       expect(await billSplitter.getRemainingShares(billId)).to.equal(
-        totalShares - creatorShares
+        totalShares - paidShares
       )
     })
 

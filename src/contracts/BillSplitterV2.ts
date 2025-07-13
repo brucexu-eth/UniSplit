@@ -47,7 +47,7 @@ export const BILL_SPLITTER_V2_ABI = [
       { name: 'token', type: 'address', internalType: 'address' },
       { name: 'sharePrice', type: 'uint256', internalType: 'uint256' },
       { name: 'totalShares', type: 'uint8', internalType: 'uint8' },
-      { name: 'creatorShares', type: 'uint8', internalType: 'uint8' },
+      { name: 'paidShares', type: 'uint8', internalType: 'uint8' },
       { name: 'description', type: 'string', internalType: 'string' },
     ],
     outputs: [],
@@ -192,7 +192,7 @@ export const BILL_SPLITTER_V2_ABI = [
         internalType: 'uint8',
       },
       {
-        name: 'creatorShares',
+        name: 'paidShares',
         type: 'uint8',
         indexed: false,
         internalType: 'uint8',
