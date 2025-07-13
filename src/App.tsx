@@ -1,58 +1,28 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import { ConnectButton } from '@rainbow-me/rainbowkit'
-import { CreditCard, Users, Zap } from 'lucide-react'
+import { CreditCard, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react'
 import CreateBill from './pages/CreateBill'
 import BillPayment from './pages/BillPayment'
-import NetworkStatus from './components/NetworkStatus'
+import { Layout } from './components/ui/layout'
 import { Button } from './components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from './components/ui/card'
-import { Separator } from './components/ui/separator'
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from './components/ui/card'
+import { Badge } from './components/ui/badge'
 
 function App() {
   return (
     <Router>
-      <div className="min-h-screen bg-background">
-        {/* Navigation Header */}
-        <header className="sticky top-0 z-50 w-full border-b bg-background/95 backdrop-blur supports-[backdrop-filter]:bg-background/60">
-          <div className="container flex h-14 items-center">
-            <div className="mr-4 flex">
-              <Link to="/" className="mr-6 flex items-center space-x-2">
-                <CreditCard className="h-6 w-6" />
-                <span className="font-bold sm:inline-block">UniSplit</span>
-              </Link>
-              <nav className="flex items-center space-x-6 text-sm font-medium">
-                <Link
-                  to="/"
-                  className="transition-colors hover:text-foreground/80 text-foreground/60"
-                >
-                  Home
-                </Link>
-                <Link
-                  to="/create"
-                  className="transition-colors hover:text-foreground/80 text-foreground/60"
-                >
-                  Create Bill
-                </Link>
-              </nav>
-            </div>
-            <div className="flex flex-1 items-center justify-between space-x-2 md:justify-end">
-              <div className="flex items-center space-x-2">
-                <NetworkStatus />
-                <ConnectButton />
-              </div>
-            </div>
-          </div>
-        </header>
-
-        {/* Main Content */}
-        <main className="flex-1">
-          <Routes>
-            <Route path="/" element={<HomePage />} />
-            <Route path="/create" element={<CreateBill />} />
-            <Route path="/bill/:billId" element={<BillPayment />} />
-          </Routes>
-        </main>
-      </div>
+      <Layout>
+        <Routes>
+          <Route path="/" element={<HomePage />} />
+          <Route path="/create" element={<CreateBill />} />
+          <Route path="/bill/:billId" element={<BillPayment />} />
+        </Routes>
+      </Layout>
     </Router>
   )
 }
@@ -60,97 +30,154 @@ function App() {
 // Home Page Component
 function HomePage() {
   return (
-    <div className="container relative">
+    <div className="space-y-16">
       {/* Hero Section */}
-      <section className="mx-auto flex max-w-[980px] flex-col items-center gap-2 py-8 md:py-12 md:pb-8 lg:py-24 lg:pb-20">
-        <h1 className="text-center text-3xl font-bold leading-tight tracking-tighter md:text-6xl lg:leading-[1.1]">
-          Split Bills{' '}
-          <span className="bg-gradient-to-r from-blue-600 to-violet-600 bg-clip-text text-transparent">
-            Effortlessly
-          </span>
-        </h1>
-        <p className="max-w-[750px] text-center text-lg font-light text-muted-foreground sm:text-xl">
-          Create bills, invite friends, and collect payments using cryptocurrency
-          on Base network. Simple, secure, and transparent.
-        </p>
-        <div className="flex w-full items-center justify-center space-x-4 py-4 md:pb-10">
-          <Button asChild size="lg">
+      <section className="text-center space-y-8 py-12">
+        <div className="space-y-4">
+          <Badge variant="secondary" className="px-3 py-1">
+            ✨ Now supporting multiple ERC20 tokens
+          </Badge>
+          <h1 className="text-4xl md:text-6xl font-bold tracking-tight">
+            Split Bills{' '}
+            <span className="bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent">
+              Effortlessly
+            </span>
+          </h1>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto leading-relaxed">
+            Create bills, invite friends, and collect payments using any ERC20
+            token on Base network. Simple, secure, and transparent.
+          </p>
+        </div>
+
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center">
+          <Button size="lg" asChild className="text-lg px-8 py-6">
             <Link to="/create">
-              <CreditCard className="mr-2 h-4 w-4" />
+              <CreditCard className="mr-2 h-5 w-5" />
               Create New Bill
+              <ArrowRight className="ml-2 h-4 w-4" />
             </Link>
           </Button>
-          <Button variant="outline" size="lg" asChild>
-            <a href="#features">
-              Learn more
-            </a>
+          <Button
+            variant="outline"
+            size="lg"
+            asChild
+            className="text-lg px-8 py-6"
+          >
+            <a href="#features">Learn More</a>
           </Button>
         </div>
       </section>
 
-      <Separator />
-
       {/* Features Section */}
-      <section id="features" className="container space-y-6 py-8 dark:bg-transparent md:py-12 lg:py-24">
-        <div className="mx-auto flex max-w-[58rem] flex-col items-center space-y-4 text-center">
-          <h2 className="text-3xl font-bold leading-[1.1] sm:text-3xl md:text-6xl">
-            How it works
-          </h2>
-          <p className="max-w-[85%] leading-normal text-muted-foreground sm:text-lg sm:leading-7">
-            Simple bill splitting in 3 easy steps
+      <section id="features" className="space-y-12">
+        <div className="text-center space-y-4">
+          <h2 className="text-3xl md:text-4xl font-bold">How UniSplit Works</h2>
+          <p className="text-xl text-muted-foreground max-w-2xl mx-auto">
+            Split expenses in three simple steps
           </p>
         </div>
-        <div className="mx-auto grid justify-center gap-4 sm:grid-cols-2 md:max-w-[64rem] md:grid-cols-3">
-          <Card className="relative overflow-hidden">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <CreditCard className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <CardTitle className="text-xl">Create your bill</CardTitle>
+
+        <div className="grid md:grid-cols-3 gap-8">
+          <Card className="relative group hover:shadow-lg transition-shadow">
+            <CardHeader className="space-y-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center">
+                <CreditCard className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">1. Create Your Bill</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Enter the total amount, select your preferred ERC20 token
+                  (USDT, USDC, etc.), and specify how many people will split the
+                  bill.
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent>
-              <CardDescription className="text-base">
-                Enter the total amount, select currency, and specify how many people
-                will split the bill. Set up your payment preferences instantly.
-              </CardDescription>
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  Support for multiple tokens
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  Set creator's initial share
+                </div>
+              </div>
             </CardContent>
           </Card>
-          
-          <Card className="relative overflow-hidden">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <Users className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <CardTitle className="text-xl">Share with friends</CardTitle>
+
+          <Card className="relative group hover:shadow-lg transition-shadow">
+            <CardHeader className="space-y-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center">
+                <Users className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">2. Share with Friends</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Share the generated link or QR code with your friends. They
+                  can pay their share without needing to register.
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent>
-              <CardDescription className="text-base">
-                Share the generated link or QR code with your friends so they can
-                pay their share. No registration required for payers.
-              </CardDescription>
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  QR code generation
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  No registration required
+                </div>
+              </div>
             </CardContent>
           </Card>
-          
-          <Card className="relative overflow-hidden">
-            <CardHeader>
-              <div className="flex items-center space-x-2">
-                <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-primary">
-                  <Zap className="h-4 w-4 text-primary-foreground" />
-                </div>
-                <CardTitle className="text-xl">Get paid instantly</CardTitle>
+
+          <Card className="relative group hover:shadow-lg transition-shadow">
+            <CardHeader className="space-y-4">
+              <div className="w-12 h-12 bg-gradient-to-br from-green-500 to-green-600 rounded-lg flex items-center justify-center">
+                <Zap className="h-6 w-6 text-white" />
+              </div>
+              <div>
+                <CardTitle className="text-xl">3. Get Paid Instantly</CardTitle>
+                <CardDescription className="text-base mt-2">
+                  Receive payments in your chosen token directly to your wallet.
+                  Fast, secure, and transparent on Base network.
+                </CardDescription>
               </div>
             </CardHeader>
             <CardContent>
-              <CardDescription className="text-base">
-                Receive payments in USDT/USDC on Base network directly to your
-                wallet. Fast, secure, and transparent transactions.
-              </CardDescription>
+              <div className="space-y-2">
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  Instant settlement
+                </div>
+                <div className="flex items-center text-sm text-muted-foreground">
+                  <CheckCircle className="h-4 w-4 mr-2 text-green-500" />
+                  Low gas fees on Base
+                </div>
+              </div>
             </CardContent>
           </Card>
+        </div>
+      </section>
+
+      {/* CTA Section */}
+      <section className="text-center py-16 bg-gradient-to-r from-blue-50 to-purple-50 rounded-2xl">
+        <div className="space-y-6">
+          <h2 className="text-3xl font-bold">
+            Ready to split your first bill?
+          </h2>
+          <p className="text-lg text-muted-foreground max-w-md mx-auto">
+            Join thousands of users who trust UniSplit for seamless expense
+            sharing
+          </p>
+          <Button size="lg" asChild className="text-lg px-8 py-6">
+            <Link to="/create">
+              Get Started Now
+              <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
         </div>
       </section>
     </div>

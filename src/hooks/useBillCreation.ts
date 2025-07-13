@@ -12,7 +12,9 @@ interface BillData {
   totalAmount: string
   currency: string
   shares: string
+  creatorShares: string
   description: string
+  tokenAddress: string
 }
 
 interface BillCreationState {
@@ -97,21 +99,23 @@ export function useBillCreation(): UseBillCreationResult {
         // Generate unique bill ID
         const billId = generateBillId()
 
-        // Convert USDT amount to proper format (6 decimals for USDT)
+        // Convert token amount to proper format (6 decimals for USDT/USDC)
         const sharePrice = parseUnits(
           (parseFloat(usdtAmount) / parseInt(billData.shares)).toFixed(6),
           6
         )
 
-        // Call the smart contract
+        // Call the smart contract with new parameters
         writeContract({
           address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
           abi: BILL_SPLITTER_V2_ABI,
           functionName: 'createBill',
           args: [
             billId as `0x${string}`,
+            billData.tokenAddress as `0x${string}`,
             sharePrice,
             parseInt(billData.shares),
+            parseInt(billData.creatorShares),
             billData.description.trim() || '', // Use empty string if no description
           ],
         })

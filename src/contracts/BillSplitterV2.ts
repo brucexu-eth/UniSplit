@@ -2,7 +2,6 @@ export const BILL_SPLITTER_V2_ABI = [
   {
     type: 'constructor',
     inputs: [
-      { name: '_usdtToken', type: 'address', internalType: 'address' },
       { name: '_initialOwner', type: 'address', internalType: 'address' },
     ],
     stateMutability: 'nonpayable',
@@ -20,6 +19,7 @@ export const BILL_SPLITTER_V2_ABI = [
     inputs: [{ name: '', type: 'bytes32', internalType: 'bytes32' }],
     outputs: [
       { name: 'creator', type: 'address', internalType: 'address' },
+      { name: 'token', type: 'address', internalType: 'address' },
       { name: 'sharePrice', type: 'uint256', internalType: 'uint256' },
       { name: 'totalShares', type: 'uint8', internalType: 'uint8' },
       { name: 'paidShares', type: 'uint8', internalType: 'uint8' },
@@ -29,7 +29,6 @@ export const BILL_SPLITTER_V2_ABI = [
         internalType: 'enum BillSplitterV2.BillStatus',
       },
       { name: 'createdAt', type: 'uint256', internalType: 'uint256' },
-      { name: 'description', type: 'string', internalType: 'string' },
     ],
     stateMutability: 'view',
   },
@@ -45,19 +44,11 @@ export const BILL_SPLITTER_V2_ABI = [
     name: 'createBill',
     inputs: [
       { name: 'billId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'token', type: 'address', internalType: 'address' },
       { name: 'sharePrice', type: 'uint256', internalType: 'uint256' },
       { name: 'totalShares', type: 'uint8', internalType: 'uint8' },
+      { name: 'creatorShares', type: 'uint8', internalType: 'uint8' },
       { name: 'description', type: 'string', internalType: 'string' },
-    ],
-    outputs: [],
-    stateMutability: 'nonpayable',
-  },
-  {
-    type: 'function',
-    name: 'creatorSelfPayment',
-    inputs: [
-      { name: 'billId', type: 'bytes32', internalType: 'bytes32' },
-      { name: 'shareCount', type: 'uint8', internalType: 'uint8' },
     ],
     outputs: [],
     stateMutability: 'nonpayable',
@@ -68,6 +59,7 @@ export const BILL_SPLITTER_V2_ABI = [
     inputs: [{ name: 'billId', type: 'bytes32', internalType: 'bytes32' }],
     outputs: [
       { name: 'creator', type: 'address', internalType: 'address' },
+      { name: 'token', type: 'address', internalType: 'address' },
       { name: 'sharePrice', type: 'uint256', internalType: 'uint256' },
       { name: 'totalShares', type: 'uint8', internalType: 'uint8' },
       { name: 'paidShares', type: 'uint8', internalType: 'uint8' },
@@ -77,7 +69,6 @@ export const BILL_SPLITTER_V2_ABI = [
         internalType: 'enum BillSplitterV2.BillStatus',
       },
       { name: 'createdAt', type: 'uint256', internalType: 'uint256' },
-      { name: 'description', type: 'string', internalType: 'string' },
     ],
     stateMutability: 'view',
   },
@@ -121,6 +112,7 @@ export const BILL_SPLITTER_V2_ABI = [
     name: 'payBill',
     inputs: [
       { name: 'billId', type: 'bytes32', internalType: 'bytes32' },
+      { name: 'token', type: 'address', internalType: 'address' },
       { name: 'shareCount', type: 'uint8', internalType: 'uint8' },
     ],
     outputs: [],
@@ -153,13 +145,6 @@ export const BILL_SPLITTER_V2_ABI = [
     stateMutability: 'nonpayable',
   },
   {
-    type: 'function',
-    name: 'usdtToken',
-    inputs: [],
-    outputs: [{ name: '', type: 'address', internalType: 'contract IERC20' }],
-    stateMutability: 'view',
-  },
-  {
     type: 'event',
     name: 'BillClosed',
     inputs: [
@@ -189,6 +174,12 @@ export const BILL_SPLITTER_V2_ABI = [
         internalType: 'address',
       },
       {
+        name: 'token',
+        type: 'address',
+        indexed: true,
+        internalType: 'address',
+      },
+      {
         name: 'sharePrice',
         type: 'uint256',
         indexed: false,
@@ -196,6 +187,12 @@ export const BILL_SPLITTER_V2_ABI = [
       },
       {
         name: 'totalShares',
+        type: 'uint8',
+        indexed: false,
+        internalType: 'uint8',
+      },
+      {
+        name: 'creatorShares',
         type: 'uint8',
         indexed: false,
         internalType: 'uint8',
@@ -287,12 +284,6 @@ export const BILL_SPLITTER_V2_ABI = [
         indexed: false,
         internalType: 'uint256',
       },
-      {
-        name: 'isCreatorSelfPayment',
-        type: 'bool',
-        indexed: false,
-        internalType: 'bool',
-      },
     ],
     anonymous: false,
   },
@@ -328,6 +319,11 @@ export const BILL_SPLITTER_V2_ABI = [
   },
   {
     type: 'error',
+    name: 'InvalidToken',
+    inputs: [],
+  },
+  {
+    type: 'error',
     name: 'OnlyCreator',
     inputs: [],
   },
@@ -346,17 +342,22 @@ export const BILL_SPLITTER_V2_ABI = [
     name: 'ReentrancyGuardReentrantCall',
     inputs: [],
   },
+  {
+    type: 'error',
+    name: 'TokenMismatch',
+    inputs: [],
+  },
 ] as const
 
 // Bill interface for V2 contract
 export interface BillV2 {
   creator: string
+  token: string
   sharePrice: bigint
   totalShares: number
   paidShares: number
   status: BillStatus
   createdAt: bigint
-  description: string
 }
 
 export enum BillStatus {

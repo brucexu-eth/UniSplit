@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { useReadContract } from 'wagmi'
-import { BILL_SPLITTER_V2_ABI, BillV2, BillStatus } from '../contracts/BillSplitterV2'
+import {
+  BILL_SPLITTER_V2_ABI,
+  BillV2,
+  BillStatus,
+} from '../contracts/BillSplitterV2'
 import { CONTRACTS } from '../config/constants'
 
 interface BillReadingState {
@@ -114,12 +118,12 @@ export function useBillReading(
       ]
       const transformedBill: BillV2 = {
         creator: bill[0],
-        sharePrice: bill[1],
-        totalShares: bill[2],
-        paidShares: bill[3],
-        status: bill[4] as BillStatus,
-        createdAt: bill[5],
-        description: bill[6],
+        token: bill[1],
+        sharePrice: bill[2],
+        totalShares: bill[3],
+        paidShares: bill[4],
+        status: bill[5] as BillStatus,
+        createdAt: bill[6],
       }
 
       setState({
