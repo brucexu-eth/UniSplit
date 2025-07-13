@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { createPublicClient, http } from 'viem'
 import { mainnet } from 'viem/chains'
+import { withRetry } from '../utils/retry'
 
 // Create a dedicated Ethereum mainnet client for ENS resolution
 const ethereumClient = createPublicClient({
@@ -22,9 +23,11 @@ export function useENS(address: string | undefined) {
       
       try {
         console.log('Resolving ENS for address:', address)
-        // Get ENS name for address using Ethereum mainnet
-        const ensName = await ethereumClient.getEnsName({ 
-          address: address as `0x${string}` 
+        // Get ENS name for address using Ethereum mainnet with retry
+        const ensName = await withRetry(async () => {
+          return await ethereumClient.getEnsName({ 
+            address: address as `0x${string}` 
+          })
         })
         
         console.log('ENS resolved:', ensName)
@@ -64,8 +67,10 @@ export function useMultipleENS(addresses: string[]) {
         console.log('Resolving ENS for multiple addresses:', addresses)
         const ensPromises = addresses.map(async (address) => {
           try {
-            const ensName = await ethereumClient.getEnsName({ 
-              address: address as `0x${string}` 
+            const ensName = await withRetry(async () => {
+              return await ethereumClient.getEnsName({ 
+                address: address as `0x${string}` 
+              })
             })
             return { address, ensName }
           } catch {

@@ -3,6 +3,7 @@ import { useAccount, usePublicClient } from 'wagmi'
 import { BillV2, BillStatus, BILL_SPLITTER_V2_ABI } from '../contracts/BillSplitterV2'
 import { CONTRACTS } from '../config/constants'
 import { parseAbiItem } from 'viem'
+import { withRetry } from '../utils/retry'
 
 export interface BillWithId extends BillV2 {
   billId: string
@@ -59,15 +60,17 @@ export function useMyBills(): MyBillsResult {
       console.log('Fetching bills for creator:', address)
       console.log('Contract address:', CONTRACTS.BILL_SPLITTER)
       
-      // Query BillCreated events where the creator is the current user
-      const logs = await publicClient.getLogs({
-        address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-        event: parseAbiItem('event BillCreated(bytes32 indexed billId, address indexed creator, address indexed token, uint256 sharePrice, uint8 totalShares, uint8 paidShares, string description)'),
-        args: {
-          creator: address as `0x${string}`
-        },
-        fromBlock: 'earliest',
-        toBlock: 'latest'
+      // Query BillCreated events where the creator is the current user with retry
+      const logs = await withRetry(async () => {
+        return await publicClient.getLogs({
+          address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
+          event: parseAbiItem('event BillCreated(bytes32 indexed billId, address indexed creator, address indexed token, uint256 sharePrice, uint8 totalShares, uint8 paidShares, string description)'),
+          args: {
+            creator: address as `0x${string}`
+          },
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        })
       })
 
       console.log('Found BillCreated events:', logs.length)
@@ -87,12 +90,14 @@ export function useMyBills(): MyBillsResult {
           const billId = log.args.billId
           console.log('Fetching bill data for ID:', billId)
           
-          // Read bill data from contract
-          const response = await publicClient.readContract({
-            address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-            abi: BILL_SPLITTER_V2_ABI,
-            functionName: 'bills',
-            args: [billId!]
+          // Read bill data from contract with retry
+          const response = await withRetry(async () => {
+            return await publicClient.readContract({
+              address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
+              abi: BILL_SPLITTER_V2_ABI,
+              functionName: 'bills',
+              args: [billId!]
+            })
           })
 
           // Transform contract response to BillV2 format

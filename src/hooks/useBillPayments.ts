@@ -3,6 +3,7 @@ import { usePublicClient } from 'wagmi'
 import { parseAbiItem } from 'viem'
 import { CONTRACTS } from '../config/constants'
 import { BillV2 } from '../contracts/BillSplitterV2'
+import { withRetry } from '../utils/retry'
 
 export interface PaymentRecord {
   payer: string
@@ -30,15 +31,17 @@ export function useBillPayments(billId: string | undefined, bill?: BillV2) {
     try {
       console.log('Fetching payments for bill:', billId)
       
-      // Get PaymentMade events for this bill
-      const logs = await publicClient.getLogs({
-        address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-        event: parseAbiItem('event PaymentMade(bytes32 indexed billId, address indexed payer, uint8 sharesPaid, uint256 amount)'),
-        args: { 
-          billId: billId as `0x${string}` 
-        },
-        fromBlock: 'earliest',
-        toBlock: 'latest'
+      // Get PaymentMade events for this bill with retry
+      const logs = await withRetry(async () => {
+        return await publicClient.getLogs({
+          address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
+          event: parseAbiItem('event PaymentMade(bytes32 indexed billId, address indexed payer, uint8 sharesPaid, uint256 amount)'),
+          args: { 
+            billId: billId as `0x${string}` 
+          },
+          fromBlock: 'earliest',
+          toBlock: 'latest'
+        })
       })
 
       console.log('Found payment logs:', logs.length)
@@ -58,15 +61,17 @@ export function useBillPayments(billId: string | undefined, bill?: BillV2) {
 
       // If bill data is available and creator has paid shares at creation time, add that as a separate record
       if (bill && bill.paidShares > 0) {
-        // Get BillCreated event to find when bill was created and get creator info
-        const creationLogs = await publicClient.getLogs({
-          address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
-          event: parseAbiItem('event BillCreated(bytes32 indexed billId, address indexed creator, address indexed token, uint256 sharePrice, uint8 totalShares, uint8 paidShares, string description)'),
-          args: { 
-            billId: billId as `0x${string}` 
-          },
-          fromBlock: 'earliest',
-          toBlock: 'latest'
+        // Get BillCreated event to find when bill was created and get creator info with retry
+        const creationLogs = await withRetry(async () => {
+          return await publicClient.getLogs({
+            address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
+            event: parseAbiItem('event BillCreated(bytes32 indexed billId, address indexed creator, address indexed token, uint256 sharePrice, uint8 totalShares, uint8 paidShares, string description)'),
+            args: { 
+              billId: billId as `0x${string}` 
+            },
+            fromBlock: 'earliest',
+            toBlock: 'latest'
+          })
         })
 
         if (creationLogs.length > 0) {
