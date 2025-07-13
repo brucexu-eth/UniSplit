@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react'
 import { useAccount } from 'wagmi'
 import { BillV2, BillStatus } from '../contracts/BillSplitterV2'
 import { useBillPayment } from '../hooks/useBillPayment'
+import { getTokenDisplayName, formatTokenAmount } from '../utils/tokens'
 
 interface CreatorSelfPaymentProps {
   bill: BillV2
@@ -70,8 +71,9 @@ export default function CreatorSelfPayment({
     return null
   }
 
-  const sharePrice = Number(bill.sharePrice) / 1e6
-  const totalAmount = sharePrice * shareCount
+  const tokenSymbol = getTokenDisplayName(bill.token)
+  const sharePriceFormatted = formatTokenAmount(bill.sharePrice, 6)
+  const totalAmountFormatted = formatTokenAmount(bill.sharePrice * BigInt(shareCount), 6)
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -133,8 +135,8 @@ export default function CreatorSelfPayment({
           <h4 className="font-medium text-blue-800 text-sm mb-2">Self-Payment Summary</h4>
           <div className="text-sm text-blue-700 space-y-1">
             <p>Shares: {shareCount}</p>
-            <p>Amount per share: {sharePrice.toFixed(6)} USDT</p>
-            <p className="font-medium">Total amount: {totalAmount.toFixed(6)} USDT</p>
+            <p>Amount per share: {sharePriceFormatted} {tokenSymbol}</p>
+            <p className="font-medium">Total amount: {totalAmountFormatted} {tokenSymbol}</p>
             <p className="text-xs text-blue-600">
               (No actual token transfer required)
             </p>

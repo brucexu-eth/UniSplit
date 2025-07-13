@@ -5,7 +5,7 @@ import { Button } from './button'
 import { Card } from './card'
 import { Separator } from './separator'
 import NetworkStatus from '../NetworkStatus'
-import { Wallet, Home, Plus, Receipt } from 'lucide-react'
+import { Home, Plus, Receipt } from 'lucide-react'
 
 interface LayoutProps {
   children: ReactNode

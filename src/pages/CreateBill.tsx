@@ -64,7 +64,7 @@ export default function CreateBill() {
     isLoading: isCreatingBill,
     isSuccess: billCreated,
     billId,
-    reset: resetBillCreation,
+    reset: _resetBillCreation,
   } = useBillCreation()
 
   const [formData, setFormData] = useState<BillFormData>({
@@ -137,23 +137,23 @@ export default function CreateBill() {
     }
   }
 
-  const handleReset = () => {
-    resetBillCreation()
-    setFormData({
-      totalAmount: '',
-      currency: 'USD',
-      shares: '',
-      paidShares: '0',
-      description: '',
-      tokenAddress: SUPPORTED_TOKENS[0]?.value || '',
-    })
-    setErrors({})
-    setSharePrice(0)
-  }
+  // const handleReset = () => {
+  //   resetBillCreation()
+  //   setFormData({
+  //     totalAmount: '',
+  //     currency: 'USD',
+  //     shares: '',
+  //     paidShares: '0',
+  //     description: '',
+  //     tokenAddress: SUPPORTED_TOKENS[0]?.value || '',
+  //   })
+  //   setErrors({})
+  //   setSharePrice(0)
+  // }
 
-  const selectedToken = SUPPORTED_TOKENS.find(
-    (token) => token.value === formData.tokenAddress
-  )
+  // const selectedToken = SUPPORTED_TOKENS.find(
+  //   (token) => token.value === formData.tokenAddress
+  // )
   const remainingShares =
     parseInt(formData.shares || '0') - parseInt(formData.paidShares || '0')
 

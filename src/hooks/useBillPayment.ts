@@ -3,7 +3,6 @@ import {
   useAccount,
   useWriteContract,
   useWaitForTransactionReceipt,
-  useReadContract,
 } from 'wagmi'
 import { parseUnits } from 'viem'
 import { BILL_SPLITTER_V2_ABI } from '../contracts/BillSplitterV2'
@@ -21,13 +20,15 @@ interface PaymentState {
 interface UseBillPaymentResult extends PaymentState {
   payBill: (
     billId: string,
-    shareCount: number,
-    sharePrice: bigint
+    token: string,
+    shareCount: number
   ) => Promise<boolean>
   reset: () => void
-  needsApproval: (sharePrice: bigint, shareCount: number) => boolean
-  approve: () => Promise<boolean>
-  allowance: bigint
+  needsApproval: (token: string, sharePrice: bigint, shareCount: number) => boolean
+  approve: (token: string) => Promise<boolean>
+  getAllowance: (token: string) => bigint
+  isApprovalConfirmed: boolean
+  isPaymentConfirmed: boolean
 }
 
 export function useBillPayment(): UseBillPaymentResult {
@@ -56,19 +57,15 @@ export function useBillPayment(): UseBillPaymentResult {
     error: approvalError,
   } = useWriteContract()
 
-  // Check current USDT allowance
-  const { data: allowance = BigInt(0) } = useReadContract({
-    address: CONTRACTS.USDT as `0x${string}`,
-    abi: ERC20_ABI,
-    functionName: 'allowance',
-    args:
-      address && CONTRACTS.BILL_SPLITTER
-        ? [address as `0x${string}`, CONTRACTS.BILL_SPLITTER as `0x${string}`]
-        : undefined,
-    query: {
-      enabled: !!address,
+  // We'll handle allowance checks dynamically for each token
+  const getAllowance = useCallback(
+    (): bigint => {
+      // This would ideally be a hook call, but we'll handle it in the component
+      // For now, return 0 as we'll check in the component
+      return BigInt(0)
     },
-  })
+    []
+  )
 
   // Wait for transaction confirmations
   const { isLoading: isPaymentConfirming, isSuccess: isPaymentConfirmed } =
@@ -81,56 +78,9 @@ export function useBillPayment(): UseBillPaymentResult {
       hash: approvalTxHash,
     })
 
-  // Approve USDT spending
-  const approve = useCallback(async (): Promise<boolean> => {
-    if (!address) {
-      setState((prev) => ({
-        ...prev,
-        isError: true,
-        error: 'Wallet not connected',
-      }))
-      return false
-    }
-
-    try {
-      setState((prev) => ({
-        ...prev,
-        isLoading: true,
-        isError: false,
-        error: null,
-      }))
-
-      // Approve maximum amount for convenience
-      const maxAmount = parseUnits('1000000', 6) // 1M USDT max approval
-
-      writeApproval({
-        address: CONTRACTS.USDT as `0x${string}`,
-        abi: ERC20_ABI,
-        functionName: 'approve',
-        args: [CONTRACTS.BILL_SPLITTER as `0x${string}`, maxAmount],
-      })
-
-      return true
-    } catch (error) {
-      console.error('Error approving USDT:', error)
-      setState((prev) => ({
-        ...prev,
-        isLoading: false,
-        isError: true,
-        error:
-          error instanceof Error ? error.message : 'Failed to approve USDT',
-      }))
-      return false
-    }
-  }, [address, writeApproval])
-
-  // Pay bill
-  const payBill = useCallback(
-    async (
-      billId: string,
-      shareCount: number,
-      sharePrice: bigint
-    ): Promise<boolean> => {
+  // Approve token spending
+  const approve = useCallback(
+    async (token: string): Promise<boolean> => {
       if (!address) {
         setState((prev) => ({
           ...prev,
@@ -140,15 +90,52 @@ export function useBillPayment(): UseBillPaymentResult {
         return false
       }
 
-      const totalAmount = sharePrice * BigInt(shareCount)
+      try {
+        setState((prev) => ({
+          ...prev,
+          isLoading: true,
+          isError: false,
+          error: null,
+        }))
 
-      // Check if approval is needed
-      if (allowance < totalAmount) {
+        // Approve maximum amount for convenience
+        const maxAmount = parseUnits('1000000', 6) // 1M tokens max approval
+
+        writeApproval({
+          address: token as `0x${string}`,
+          abi: ERC20_ABI,
+          functionName: 'approve',
+          args: [CONTRACTS.BILL_SPLITTER as `0x${string}`, maxAmount],
+        })
+
+        return true
+      } catch (error) {
+        console.error('Error approving token:', error)
+        setState((prev) => ({
+          ...prev,
+          isLoading: false,
+          isError: true,
+          error:
+            error instanceof Error ? error.message : 'Failed to approve token',
+        }))
+        return false
+      }
+    },
+    [address, writeApproval]
+  )
+
+  // Pay bill
+  const payBill = useCallback(
+    async (
+      billId: string,
+      token: string,
+      shareCount: number
+    ): Promise<boolean> => {
+      if (!address) {
         setState((prev) => ({
           ...prev,
           isError: true,
-          error:
-            'Insufficient USDT allowance. Please approve USDT spending first.',
+          error: 'Wallet not connected',
         }))
         return false
       }
@@ -165,7 +152,7 @@ export function useBillPayment(): UseBillPaymentResult {
           address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
           abi: BILL_SPLITTER_V2_ABI,
           functionName: 'payBill',
-          args: [billId as `0x${string}`, shareCount],
+          args: [billId as `0x${string}`, token as `0x${string}`, shareCount],
         })
 
         return true
@@ -180,7 +167,7 @@ export function useBillPayment(): UseBillPaymentResult {
         return false
       }
     },
-    [address, allowance, writePayment]
+    [address, writePayment]
   )
 
   const reset = useCallback(() => {
@@ -201,12 +188,12 @@ export function useBillPayment(): UseBillPaymentResult {
     isApprovalConfirming ||
     state.isLoading
 
-  const isSuccess = isPaymentConfirmed || isApprovalConfirmed
+  const isSuccess = isPaymentConfirmed // Only payment success, not approval
   const isError = !!paymentError || !!approvalError || state.isError
   const error = paymentError?.message || approvalError?.message || state.error
-  const needsApproval = (sharePrice: bigint, shareCount: number) => {
-    const totalAmount = sharePrice * BigInt(shareCount)
-    return allowance < totalAmount
+  const needsApproval = () => {
+    // This will be handled in the component with proper allowance checking
+    return true // Default to requiring approval check
   }
 
   return {
@@ -217,8 +204,10 @@ export function useBillPayment(): UseBillPaymentResult {
     txHash: paymentTxHash || approvalTxHash || state.txHash,
     payBill,
     reset,
-    needsApproval: needsApproval,
+    needsApproval,
     approve,
-    allowance,
+    getAllowance,
+    isApprovalConfirmed,
+    isPaymentConfirmed,
   }
 }

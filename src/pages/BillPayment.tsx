@@ -6,12 +6,15 @@ import { BillStatus } from '../contracts/BillSplitterV2'
 import { useBillReading } from '../hooks/useBillReading'
 import { useBillPayment } from '../hooks/useBillPayment'
 import { useBillUpdates } from '../hooks/useBillUpdates'
+import { useTokenAllowance } from '../hooks/useTokenAllowance'
 import BillUpdateForm from '../components/BillUpdateForm'
 import CreatorSelfPayment from '../components/CreatorSelfPayment'
+import { getTokenDisplayName, formatTokenAmount } from '../utils/tokens'
 
 interface BillPaymentState {
   shareQuantity: number
   showUpdateForm: boolean
+  paymentStep: 'approve' | 'pay' | 'complete'
 }
 
 interface BillPaymentErrors {
@@ -32,12 +35,20 @@ export default function BillPayment() {
   const {
     payBill,
     approve,
-    needsApproval,
     isLoading: isPaymentLoading,
-    isSuccess: isPaymentSuccess,
+    isSuccess: _isPaymentSuccess,
+    isApprovalConfirmed,
+    isPaymentConfirmed,
     error: paymentError,
     reset: resetPayment,
   } = useBillPayment()
+
+  // Get token allowance
+  const { allowance } = useTokenAllowance({
+    token: bill?.token || '',
+    owner: address,
+    enabled: !!bill?.token && !!address,
+  })
 
   // Use the bill updates hook
   const {
@@ -49,6 +60,7 @@ export default function BillPayment() {
   const [state, setState] = useState<BillPaymentState>({
     shareQuantity: 1,
     showUpdateForm: false,
+    paymentStep: 'approve',
   })
 
   const [errors, setErrors] = useState<BillPaymentErrors>({})
@@ -98,36 +110,34 @@ export default function BillPayment() {
     }, 2000) // Wait for blockchain confirmation
   }
 
-  // Handle payment approval
-  const handleApprove = async () => {
-    if (!bill) return
-
-    const success = await approve()
-    if (!success && paymentError) {
-      setErrors((prev) => ({ ...prev, paymentError }))
-    }
-  }
-
-  // Handle payment
-  const handlePayment = async () => {
+  // Handle unified payment process
+  const handlePaymentProcess = async () => {
     if (!bill || !billId) return
 
-    const success = await payBill(billId, state.shareQuantity, bill.sharePrice)
-    if (!success && paymentError) {
-      setErrors((prev) => ({ ...prev, paymentError }))
-    } else if (success) {
-      // Refresh bill data after successful payment
-      setTimeout(() => {
-        refetch()
-      }, 2000) // Wait a bit for blockchain confirmation
+    const totalAmount = bill.sharePrice * BigInt(state.shareQuantity)
+    const needsApproval = allowance < totalAmount
+
+    if (needsApproval && state.paymentStep === 'approve') {
+      // Step 1: Approve
+      const success = await approve(bill.token)
+      if (!success && paymentError) {
+        setErrors((prev) => ({ ...prev, paymentError }))
+      }
+    } else {
+      // Step 2: Pay
+      const success = await payBill(billId, bill.token, state.shareQuantity)
+      if (!success && paymentError) {
+        setErrors((prev) => ({ ...prev, paymentError }))
+      }
     }
   }
 
   // Calculate payment amounts
   const sharePrice = bill ? bill.sharePrice : BigInt(0)
   const totalPayment = sharePrice * BigInt(state.shareQuantity)
-  const sharePriceUSDT = sharePrice ? Number(sharePrice) / 1e6 : 0 // Convert from 6 decimal USDT
-  const totalPaymentUSDT = totalPayment ? Number(totalPayment) / 1e6 : 0
+  const tokenSymbol = bill ? getTokenDisplayName(bill.token) : 'Token'
+  const sharePriceFormatted = sharePrice ? formatTokenAmount(sharePrice, 6) : '0'
+  const totalPaymentFormatted = totalPayment ? formatTokenAmount(totalPayment, 6) : '0'
 
   // Check if bill is available for payment
   const canPay =
@@ -138,8 +148,20 @@ export default function BillPayment() {
     state.shareQuantity <= bill.totalShares - bill.paidShares
 
   // Check if approval is needed
-  const requiresApproval =
-    bill && needsApproval(bill.sharePrice, state.shareQuantity)
+  const totalAmount = bill ? bill.sharePrice * BigInt(state.shareQuantity) : BigInt(0)
+  const requiresApproval = bill && allowance < totalAmount
+
+  // Update payment step based on approval status
+  if (isApprovalConfirmed && state.paymentStep === 'approve') {
+    setState(prev => ({ ...prev, paymentStep: 'pay' }))
+  }
+  
+  if (isPaymentConfirmed && state.paymentStep === 'pay') {
+    setState(prev => ({ ...prev, paymentStep: 'complete' }))
+    setTimeout(() => {
+      refetch()
+    }, 2000)
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
@@ -264,7 +286,7 @@ export default function BillPayment() {
                       Share Price
                     </label>
                     <p className="text-xl font-semibold text-gray-900">
-                      {sharePriceUSDT.toFixed(2)} USDT
+                      {sharePriceFormatted} {tokenSymbol}
                     </p>
                   </div>
                 </div>
@@ -429,7 +451,7 @@ export default function BillPayment() {
                   <div className="space-y-2 text-sm">
                     <div className="flex justify-between">
                       <span className="text-gray-600">Share price:</span>
-                      <span>{sharePriceUSDT.toFixed(2)} USDT</span>
+                      <span>{sharePriceFormatted} {tokenSymbol}</span>
                     </div>
                     <div className="flex justify-between">
                       <span className="text-gray-600">Quantity:</span>
@@ -438,31 +460,21 @@ export default function BillPayment() {
                     <div className="border-t pt-2 flex justify-between font-medium">
                       <span>Total payment:</span>
                       <span className="text-lg">
-                        {totalPaymentUSDT.toFixed(2)} USDT
+                        {totalPaymentFormatted} {tokenSymbol}
                       </span>
                     </div>
                   </div>
                 </div>
 
-                {/* Payment Buttons */}
-                {requiresApproval && isConnected && canPay && (
-                  <button
-                    onClick={handleApprove}
-                    disabled={isPaymentLoading}
-                    className="w-full py-3 px-6 rounded-lg font-medium transition-colors bg-yellow-600 text-white hover:bg-yellow-700 disabled:opacity-50 disabled:cursor-not-allowed mb-4"
-                  >
-                    {isPaymentLoading
-                      ? 'Approving...'
-                      : 'Approve USDT Spending'}
-                  </button>
-                )}
-
+                {/* Single Payment Button */}
                 <button
-                  onClick={requiresApproval ? handleApprove : handlePayment}
+                  onClick={handlePaymentProcess}
                   disabled={!canPay || !isConnected || isPaymentLoading}
                   className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
                     canPay && isConnected && !isPaymentLoading
-                      ? 'bg-blue-600 text-white hover:bg-blue-700'
+                      ? requiresApproval && state.paymentStep === 'approve'
+                        ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                        : 'bg-blue-600 text-white hover:bg-blue-700'
                       : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
@@ -471,16 +483,24 @@ export default function BillPayment() {
                     : !canPay
                       ? 'Payment Not Available'
                       : isPaymentLoading
-                        ? requiresApproval
-                          ? 'Approving...'
+                        ? requiresApproval && state.paymentStep === 'approve'
+                          ? `Approving ${tokenSymbol}...`
                           : 'Processing Payment...'
-                        : requiresApproval
-                          ? 'Approve USDT First'
-                          : `Pay ${totalPaymentUSDT.toFixed(2)} USDT`}
+                        : requiresApproval && state.paymentStep === 'approve'
+                          ? `Approve ${tokenSymbol} Spending`
+                          : `Pay ${totalPaymentFormatted} ${tokenSymbol}`}
                 </button>
 
-                {/* Success Message */}
-                {isPaymentSuccess && (
+                {/* Status Messages */}
+                {isApprovalConfirmed && state.paymentStep === 'pay' && (
+                  <div className="mt-4 p-3 bg-blue-50 border border-blue-200 rounded-lg">
+                    <p className="text-blue-800 text-sm">
+                      {tokenSymbol} approval successful! Now you can proceed with payment.
+                    </p>
+                  </div>
+                )}
+                
+                {isPaymentConfirmed && (
                   <div className="mt-4 p-3 bg-green-50 border border-green-200 rounded-lg">
                     <p className="text-green-800 text-sm">
                       Payment successful! The bill data will update shortly.

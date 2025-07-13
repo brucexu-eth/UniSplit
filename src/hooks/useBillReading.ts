@@ -106,15 +106,15 @@ export function useBillReading(
 
     if (billExists && billData) {
       // Transform the contract data to our BillV2 interface
-      // billData is a tuple from the contract: [creator, sharePrice, totalShares, paidShares, status, createdAt, description]
+      // billData is a tuple from the contract: [creator, token, sharePrice, totalShares, paidShares, status, createdAt]
       const bill = billData as unknown as readonly [
-        string,
-        bigint,
-        number,
-        number,
-        number,
-        bigint,
-        string,
+        string, // creator
+        string, // token
+        bigint, // sharePrice
+        number, // totalShares
+        number, // paidShares
+        number, // status
+        bigint, // createdAt
       ]
       const transformedBill: BillV2 = {
         creator: bill[0],
