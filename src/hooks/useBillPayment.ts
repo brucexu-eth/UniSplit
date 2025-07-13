@@ -1,4 +1,4 @@
-import { useState, useCallback } from 'react'
+import { useState, useCallback, useEffect } from 'react'
 import {
   useAccount,
   useWriteContract,
@@ -76,6 +76,26 @@ export function useBillPayment(): UseBillPaymentResult {
     useWaitForTransactionReceipt({
       hash: approvalTxHash,
     })
+
+  // Reset loading state when approval is confirmed
+  useEffect(() => {
+    if (isApprovalConfirmed) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+      }))
+    }
+  }, [isApprovalConfirmed])
+
+  // Reset loading state when payment is confirmed
+  useEffect(() => {
+    if (isPaymentConfirmed) {
+      setState((prev) => ({
+        ...prev,
+        isLoading: false,
+      }))
+    }
+  }, [isPaymentConfirmed])
 
   // Approve token spending
   const approve = useCallback(

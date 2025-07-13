@@ -196,16 +196,20 @@ export default function BillPayment() {
   const requiresApproval = bill && allowance < totalAmount && !isApprovalConfirmed
 
   // Update payment step based on approval status
-  if (isApprovalConfirmed && state.paymentStep === 'approve') {
-    setState(prev => ({ ...prev, paymentStep: 'pay' }))
-  }
+  useEffect(() => {
+    if (isApprovalConfirmed && state.paymentStep === 'approve') {
+      setState(prev => ({ ...prev, paymentStep: 'pay' }))
+    }
+  }, [isApprovalConfirmed, state.paymentStep])
   
-  if (isPaymentConfirmed && state.paymentStep === 'pay') {
-    setState(prev => ({ ...prev, paymentStep: 'complete' }))
-    setTimeout(() => {
-      refetch()
-    }, 2000)
-  }
+  useEffect(() => {
+    if (isPaymentConfirmed && state.paymentStep === 'pay') {
+      setState(prev => ({ ...prev, paymentStep: 'complete' }))
+      setTimeout(() => {
+        refetch()
+      }, 2000)
+    }
+  }, [isPaymentConfirmed, state.paymentStep, refetch])
 
   return (
     <div className="min-h-screen bg-gray-50 py-8">
