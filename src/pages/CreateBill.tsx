@@ -78,6 +78,7 @@ export default function CreateBill() {
 
   const [errors, setErrors] = useState<Partial<BillFormData>>({})
   const [sharePrice, setSharePrice] = useState<number>(0)
+  const [shareExchangeLoading, setShareExchangeLoading] = useState(false)
 
   // Redirect to bill details when bill is created successfully
   useEffect(() => {
@@ -87,17 +88,39 @@ export default function CreateBill() {
     }
   }, [billCreated, billId, navigate])
 
-  // Calculate share price in real time
+  // Calculate share price in real time with currency conversion
   useEffect(() => {
-    if (formData.totalAmount && formData.shares) {
-      const total = parseFloat(formData.totalAmount)
-      const shares = parseInt(formData.shares)
-      if (!isNaN(total) && !isNaN(shares) && shares > 0) {
-        const pricePerShare = total / shares
-        setSharePrice(pricePerShare)
+    const calculateSharePrice = async () => {
+      if (formData.totalAmount && formData.shares) {
+        const total = parseFloat(formData.totalAmount)
+        const shares = parseInt(formData.shares)
+        if (!isNaN(total) && !isNaN(shares) && shares > 0) {
+          setShareExchangeLoading(true)
+          try {
+            // Convert total amount to USD/USDT
+            const totalAmountUSD = await convertToUSDT(total, formData.currency)
+            const pricePerShare = totalAmountUSD / shares
+            setSharePrice(pricePerShare)
+          } catch (error) {
+            console.error('Error converting currency for share price:', error)
+            // Fallback to direct calculation if conversion fails
+            const pricePerShare = total / shares
+            setSharePrice(pricePerShare)
+          } finally {
+            setShareExchangeLoading(false)
+          }
+        } else {
+          setSharePrice(0)
+        }
+      } else {
+        setSharePrice(0)
       }
     }
-  }, [formData.totalAmount, formData.shares])
+
+    // Debounce the calculation to avoid too many API calls
+    const timeoutId = setTimeout(calculateSharePrice, 500)
+    return () => clearTimeout(timeoutId)
+  }, [formData.totalAmount, formData.shares, formData.currency, convertToUSDT])
 
   const validateForm = (): boolean => {
     const newErrors: Partial<BillFormData> = {}
@@ -331,17 +354,29 @@ export default function CreateBill() {
             </div>
 
             {/* Price Preview */}
-            {sharePrice > 0 && (
+            {(sharePrice > 0 || shareExchangeLoading) && (
               <Card className="bg-gradient-to-r from-blue-50 to-purple-50 border-blue-200">
                 <CardContent className="pt-6">
                   <div className="grid grid-cols-2 gap-4 text-sm">
                     <div>
                       <span className="text-muted-foreground">
-                        Price per share:
+                        Price per share (in {SUPPORTED_TOKENS.find(token => token.value === formData.tokenAddress)?.label || 'Token'}):
                       </span>
-                      <p className="font-medium text-lg">
-                        {sharePrice.toFixed(2)} {formData.currency}
-                      </p>
+                      {shareExchangeLoading ? (
+                        <div className="flex items-center">
+                          <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                          <span className="text-muted-foreground">Converting...</span>
+                        </div>
+                      ) : (
+                        <p className="font-medium text-lg">
+                          {sharePrice.toFixed(6)} {SUPPORTED_TOKENS.find(token => token.value === formData.tokenAddress)?.label || 'Token'}
+                        </p>
+                      )}
+                      {formData.currency !== 'USD' && !shareExchangeLoading && (
+                        <p className="text-xs text-muted-foreground">
+                          ({(parseFloat(formData.totalAmount) / parseInt(formData.shares || '1')).toFixed(2)} {formData.currency} each)
+                        </p>
+                      )}
                     </div>
                     <div>
                       <span className="text-muted-foreground">
@@ -362,7 +397,7 @@ export default function CreateBill() {
             <Button
               type="submit"
               className="w-full text-lg py-6"
-              disabled={isCreatingBill || exchangeLoading}
+              disabled={isCreatingBill || exchangeLoading || shareExchangeLoading}
             >
               {isCreatingBill ? (
                 <>
