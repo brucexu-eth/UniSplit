@@ -28,8 +28,11 @@ export function getTokenName(address: string): string {
 /**
  * Format token amount with proper decimals
  */
-export function formatTokenAmount(amount: bigint, decimals: number): string {
-  const divisor = BigInt(10 ** decimals)
+export function formatTokenAmount(amount: bigint, tokenAddress: string, displayDecimals: number = 6): string {
+  const token = getTokenByAddress(tokenAddress)
+  const tokenDecimals = token?.decimals || 6 // Default to 6 for USDC/USDT
+  
+  const divisor = BigInt(10 ** tokenDecimals)
   const quotient = amount / divisor
   const remainder = amount % divisor
   
@@ -37,16 +40,17 @@ export function formatTokenAmount(amount: bigint, decimals: number): string {
     return quotient.toString()
   }
   
-  // Convert remainder to decimal
-  const decimalPart = remainder.toString().padStart(decimals, '0')
-  // Remove trailing zeros
-  const trimmedDecimal = decimalPart.replace(/0+$/, '')
+  // Convert remainder to decimal with token's full precision
+  const decimalPart = remainder.toString().padStart(tokenDecimals, '0')
   
-  if (trimmedDecimal === '') {
+  // Limit to display decimals and remove trailing zeros
+  const limitedDecimal = decimalPart.slice(0, displayDecimals).replace(/0+$/, '')
+  
+  if (limitedDecimal === '') {
     return quotient.toString()
   }
   
-  return `${quotient}.${trimmedDecimal}`
+  return `${quotient}.${limitedDecimal}`
 }
 
 /**

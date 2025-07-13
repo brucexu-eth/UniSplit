@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { usePublicClient } from 'wagmi'
 import { parseAbiItem } from 'viem'
 import { CONTRACTS } from '../config/constants'
@@ -15,7 +15,7 @@ export interface PaymentRecord {
   isCreatorInitialPayment?: boolean
 }
 
-export function useBillPayments(billId: string | undefined, bill?: BillV2) {
+export function useBillPayments(billId: string | undefined, bill?: BillV2, enableRealtime = true) {
   const [payments, setPayments] = useState<PaymentRecord[]>([])
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -141,9 +141,94 @@ export function useBillPayments(billId: string | undefined, bill?: BillV2) {
     }
   }
 
+  // Handle new payment events in real-time
+  const handleNewPayment = useCallback((log: any) => {
+    console.log('New payment event detected:', log)
+    
+    const { payer, sharesPaid, amount } = log.args
+    const newPayment: PaymentRecord = {
+      payer: payer as string,
+      sharesPaid: Number(sharesPaid),
+      amount: amount as bigint,
+      transactionHash: log.transactionHash,
+      blockNumber: log.blockNumber,
+      isCreatorInitialPayment: false
+    }
+
+    setPayments(prevPayments => {
+      // Check if this payment already exists (by transaction hash)
+      const existingIndex = prevPayments.findIndex(p => p.transactionHash === newPayment.transactionHash)
+      if (existingIndex !== -1) {
+        return prevPayments // Payment already exists, don't add duplicate
+      }
+
+      // Check if this payer already has other payments
+      const existingPayerIndex = prevPayments.findIndex(p => p.payer.toLowerCase() === newPayment.payer.toLowerCase())
+      
+      if (existingPayerIndex !== -1) {
+        // Update existing payer's aggregated payment
+        const updatedPayments = [...prevPayments]
+        const existingPayment = updatedPayments[existingPayerIndex]
+        
+        if (existingPayment) {
+          updatedPayments[existingPayerIndex] = {
+            ...existingPayment,
+            sharesPaid: existingPayment.sharesPaid + newPayment.sharesPaid,
+            amount: existingPayment.amount + newPayment.amount,
+            transactionHash: newPayment.transactionHash, // Use latest transaction
+            blockNumber: newPayment.blockNumber,
+            isCreatorInitialPayment: false // Latest transaction takes precedence
+          }
+        }
+        
+        return updatedPayments
+      } else {
+        // Add new payer
+        return [...prevPayments, newPayment]
+      }
+    })
+  }, [])
+
   useEffect(() => {
     fetchPayments()
   }, [billId, bill, publicClient])
+
+  // Set up real-time event listening
+  useEffect(() => {
+    if (!billId || !publicClient || !enableRealtime) return
+
+    let unwatch: (() => void) | undefined
+
+    const setupWatcher = async () => {
+      try {
+        console.log('Setting up real-time payment watcher for bill:', billId)
+        
+        unwatch = publicClient.watchEvent({
+          address: CONTRACTS.BILL_SPLITTER as `0x${string}`,
+          event: parseAbiItem('event PaymentMade(bytes32 indexed billId, address indexed payer, uint8 sharesPaid, uint256 amount)'),
+          args: { 
+            billId: billId as `0x${string}` 
+          },
+          onLogs: (logs) => {
+            logs.forEach(log => {
+              handleNewPayment(log)
+            })
+          }
+        })
+      } catch (error) {
+        console.error('Failed to set up payment watcher:', error)
+      }
+    }
+
+    setupWatcher()
+
+    return () => {
+      if (unwatch) {
+        console.log('Cleaning up payment watcher')
+        unwatch()
+      }
+    }
+  }, [billId, publicClient, enableRealtime, handleNewPayment])
 
   return {
     payments,

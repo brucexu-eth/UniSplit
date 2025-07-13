@@ -72,8 +72,8 @@ export default function CreatorSelfPayment({
   }
 
   const tokenSymbol = getTokenDisplayName(bill.token)
-  const sharePriceFormatted = formatTokenAmount(bill.sharePrice, 6)
-  const totalAmountFormatted = formatTokenAmount(bill.sharePrice * BigInt(shareCount), 6)
+  const sharePriceFormatted = formatTokenAmount(bill.sharePrice, bill.token, 2)
+  const totalAmountFormatted = formatTokenAmount(bill.sharePrice * BigInt(shareCount), bill.token, 2)
 
   return (
     <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">

@@ -14,7 +14,7 @@ interface BillCardProps {
 export function BillCard({ bill, billId }: BillCardProps) {
   const tokenSymbol = getTokenDisplayName(bill.token)
   // const sharePriceFormatted = formatTokenAmount(bill.sharePrice, 6)
-  const totalAmountFormatted = formatTokenAmount(bill.sharePrice * BigInt(bill.totalShares), 6)
+  const totalAmountFormatted = formatTokenAmount(bill.sharePrice * BigInt(bill.totalShares), bill.token, 2)
   
   const progress = bill.totalShares > 0 ? (bill.paidShares / bill.totalShares) * 100 : 0
   const remainingShares = bill.totalShares - bill.paidShares
