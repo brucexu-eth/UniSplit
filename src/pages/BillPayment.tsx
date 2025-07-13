@@ -132,8 +132,8 @@ export default function BillPayment() {
     const needsApproval = allowance < totalAmount
 
     if (needsApproval && state.paymentStep === 'approve') {
-      // Step 1: Approve
-      const success = await approve(bill.token)
+      // Step 1: Approve exact amount needed for security
+      const success = await approve(bill.token, totalAmount)
       if (!success && paymentError) {
         setErrors((prev) => ({ ...prev, paymentError }))
       }

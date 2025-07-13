@@ -369,7 +369,7 @@ export default function CreateBill() {
                         </div>
                       ) : (
                         <p className="font-medium text-lg">
-                          {sharePrice.toFixed(6)} {SUPPORTED_TOKENS.find(token => token.value === formData.tokenAddress)?.label || 'Token'}
+                          {sharePrice.toFixed(2)} {SUPPORTED_TOKENS.find(token => token.value === formData.tokenAddress)?.label || 'Token'}
                         </p>
                       )}
                       {formData.currency !== 'USD' && !shareExchangeLoading && (

@@ -4,7 +4,6 @@ import {
   useWriteContract,
   useWaitForTransactionReceipt,
 } from 'wagmi'
-import { parseUnits } from 'viem'
 import { BILL_SPLITTER_V2_ABI } from '../contracts/BillSplitterV2'
 import { CONTRACTS } from '../config/constants'
 import { ERC20_ABI } from '../contracts/erc20'
@@ -25,7 +24,7 @@ interface UseBillPaymentResult extends PaymentState {
   ) => Promise<boolean>
   reset: () => void
   needsApproval: (token: string, sharePrice: bigint, shareCount: number) => boolean
-  approve: (token: string) => Promise<boolean>
+  approve: (token: string, amount: bigint) => Promise<boolean>
   getAllowance: (token: string) => bigint
   isApprovalConfirmed: boolean
   isPaymentConfirmed: boolean
@@ -80,7 +79,7 @@ export function useBillPayment(): UseBillPaymentResult {
 
   // Approve token spending
   const approve = useCallback(
-    async (token: string): Promise<boolean> => {
+    async (token: string, amount: bigint): Promise<boolean> => {
       if (!address) {
         setState((prev) => ({
           ...prev,
@@ -98,14 +97,12 @@ export function useBillPayment(): UseBillPaymentResult {
           error: null,
         }))
 
-        // Approve maximum amount for convenience
-        const maxAmount = parseUnits('1000000', 6) // 1M tokens max approval
-
+        // Approve exact amount needed for security
         writeApproval({
           address: token as `0x${string}`,
           abi: ERC20_ABI,
           functionName: 'approve',
-          args: [CONTRACTS.BILL_SPLITTER as `0x${string}`, maxAmount],
+          args: [CONTRACTS.BILL_SPLITTER as `0x${string}`, amount],
         })
 
         return true
