@@ -54,6 +54,16 @@ export function Layout({ children }: LayoutProps) {
                   Create Bill
                 </Link>
               </Button>
+              <Button
+                variant={isActive('/mybills') ? 'default' : 'ghost'}
+                size="sm"
+                asChild
+              >
+                <Link to="/mybills">
+                  <Receipt className="w-4 h-4 mr-2" />
+                  My Bills
+                </Link>
+              </Button>
             </nav>
           </div>
 
@@ -90,6 +100,17 @@ export function Layout({ children }: LayoutProps) {
             <Link to="/create">
               <Plus className="w-5 h-5" />
               <span className="text-xs mt-1">Create</span>
+            </Link>
+          </Button>
+          <Button
+            variant={isActive('/mybills') ? 'default' : 'ghost'}
+            size="sm"
+            asChild
+            className="flex-col h-auto py-2"
+          >
+            <Link to="/mybills">
+              <Receipt className="w-5 h-5" />
+              <span className="text-xs mt-1">My Bills</span>
             </Link>
           </Button>
         </div>

@@ -1,7 +1,8 @@
 import { BrowserRouter as Router, Routes, Route, Link } from 'react-router-dom'
-import { CreditCard, Users, Zap, ArrowRight, CheckCircle } from 'lucide-react'
+import { CreditCard, Users, Zap, ArrowRight, CheckCircle, Receipt } from 'lucide-react'
 import CreateBill from './pages/CreateBill'
 import BillPayment from './pages/BillPayment'
+import MyBills from './pages/MyBills'
 import { Layout } from './components/ui/layout'
 import { Button } from './components/ui/button'
 import {
@@ -20,6 +21,7 @@ function App() {
         <Routes>
           <Route path="/" element={<HomePage />} />
           <Route path="/create" element={<CreateBill />} />
+          <Route path="/mybills" element={<MyBills />} />
           <Route path="/bill/:billId" element={<BillPayment />} />
         </Routes>
       </Layout>
@@ -55,6 +57,17 @@ function HomePage() {
               <CreditCard className="mr-2 h-5 w-5" />
               Create New Bill
               <ArrowRight className="ml-2 h-4 w-4" />
+            </Link>
+          </Button>
+          <Button
+            variant="outline"
+            size="lg"
+            asChild
+            className="text-lg px-8 py-6"
+          >
+            <Link to="/mybills">
+              <Receipt className="mr-2 h-5 w-5" />
+              My Bills
             </Link>
           </Button>
           <Button

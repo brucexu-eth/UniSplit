@@ -8,7 +8,7 @@ interface RequiredEnvVars {
   VITE_USDC_CONTRACT_ADDRESS: string
 }
 
-type EnvVars = RequiredEnvVars & OptionalEnvVars
+// type EnvVars = RequiredEnvVars
 
 export function validateEnvironment(): boolean {
   const requiredVars: (keyof RequiredEnvVars)[] = [
@@ -36,7 +36,7 @@ export function validateEnvironment(): boolean {
   return true
 }
 
-export function getEnvVar(name: keyof EnvVars): string | undefined {
+export function getEnvVar(name: string): string | undefined {
   return import.meta.env[name]
 }
 
