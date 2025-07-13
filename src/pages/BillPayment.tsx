@@ -1,7 +1,8 @@
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useParams, Link } from 'react-router-dom'
 import { ConnectButton } from '@rainbow-me/rainbowkit'
 import { useAccount } from 'wagmi'
+import QRCode from 'qrcode'
 import { BillStatus } from '../contracts/BillSplitterV2'
 import { useBillReading } from '../hooks/useBillReading'
 import { useBillPayment } from '../hooks/useBillPayment'
@@ -78,6 +79,35 @@ export default function BillPayment() {
   })
 
   const [errors, setErrors] = useState<BillPaymentErrors>({})
+  
+  // QR Code states
+  const [qrCodeUrl, setQrCodeUrl] = useState<string>('')
+  const [showQRCode, setShowQRCode] = useState<boolean>(false)
+
+  // Generate QR code when component mounts
+  useEffect(() => {
+    const generateQRCode = async () => {
+      try {
+        const currentUrl = window.location.href
+        const qrDataUrl = await QRCode.toDataURL(currentUrl, {
+          errorCorrectionLevel: 'M',
+          margin: 1,
+          color: {
+            dark: '#000000',
+            light: '#FFFFFF'
+          },
+          width: 256
+        })
+        setQrCodeUrl(qrDataUrl)
+      } catch (err) {
+        console.error('Failed to generate QR code:', err)
+      }
+    }
+    
+    if (billId) {
+      generateQRCode()
+    }
+  }, [billId])
 
   // Clear errors when user actions change
   const clearError = (errorType: keyof BillPaymentErrors) => {
@@ -288,6 +318,29 @@ export default function BillPayment() {
                       ? 'Active - Accepting Payments'
                       : 'Closed - No Longer Accepting Payments'}
                   </span>
+                </div>
+                
+                {/* QR Code Button */}
+                <div className="mt-3">
+                  <button
+                    onClick={() => setShowQRCode(true)}
+                    className="inline-flex items-center px-3 py-2 text-sm font-medium text-blue-600 bg-blue-50 hover:bg-blue-100 rounded-lg transition-colors"
+                  >
+                    <svg
+                      className="w-4 h-4 mr-2"
+                      fill="none"
+                      stroke="currentColor"
+                      viewBox="0 0 24 24"
+                    >
+                      <path
+                        strokeLinecap="round"
+                        strokeLinejoin="round"
+                        strokeWidth="2"
+                        d="M12 4v1m6 11h2m-6 0h-2v4m0-11v3m0 0h.01M12 12h4.01M16 20h4M4 12h4m12 0h.01m-5.01 0h.01m-6.01 0h.01m5.01 0V9a2 2 0 00-2-2h-2m0 0V5a2 2 0 00-2-2H9a2 2 0 00-2 2v2m0 0h2m0 0h2"
+                      />
+                    </svg>
+                    Share QR Code
+                  </button>
                 </div>
               </div>
 
@@ -590,26 +643,30 @@ export default function BillPayment() {
                 {/* Single Payment Button */}
                 <button
                   onClick={handlePaymentProcess}
-                  disabled={!canPay || !isConnected || isPaymentLoading}
+                  disabled={!canPay || !isConnected || isPaymentLoading || isPaymentConfirmed}
                   className={`w-full py-3 px-6 rounded-lg font-medium transition-colors ${
-                    canPay && isConnected && !isPaymentLoading
-                      ? requiresApproval && state.paymentStep === 'approve'
-                        ? 'bg-yellow-600 text-white hover:bg-yellow-700'
-                        : 'bg-blue-600 text-white hover:bg-blue-700'
-                      : 'bg-gray-300 text-gray-500 cursor-not-allowed'
+                    isPaymentConfirmed
+                      ? 'bg-green-600 text-white cursor-default'
+                      : canPay && isConnected && !isPaymentLoading
+                        ? requiresApproval && state.paymentStep === 'approve'
+                          ? 'bg-yellow-600 text-white hover:bg-yellow-700'
+                          : 'bg-blue-600 text-white hover:bg-blue-700'
+                        : 'bg-gray-300 text-gray-500 cursor-not-allowed'
                   }`}
                 >
                   {!isConnected
                     ? 'Connect Wallet to Pay'
                     : !canPay
                       ? 'Payment Not Available'
-                      : isPaymentLoading
-                        ? requiresApproval && state.paymentStep === 'approve'
-                          ? `Approving ${tokenSymbol}...`
-                          : 'Processing Payment...'
-                        : requiresApproval && state.paymentStep === 'approve'
-                          ? `Approve ${tokenSymbol} Spending`
-                          : `Pay ${totalPaymentFormatted} ${tokenSymbol}`}
+                      : isPaymentConfirmed
+                        ? '✓ Payment Successful'
+                        : isPaymentLoading
+                          ? requiresApproval && state.paymentStep === 'approve'
+                            ? `Approving ${tokenSymbol}...`
+                            : 'Processing Payment...'
+                          : requiresApproval && state.paymentStep === 'approve'
+                            ? `Approve ${tokenSymbol} Spending`
+                            : `Pay ${totalPaymentFormatted} ${tokenSymbol}`}
                 </button>
 
                 {/* Status Messages */}
@@ -693,6 +750,58 @@ export default function BillPayment() {
           </div>
         )}
       </div>
+
+      {/* QR Code Modal */}
+      {showQRCode && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg max-w-md w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Share Bill QR Code
+              </h3>
+              <button
+                onClick={() => setShowQRCode(false)}
+                className="text-gray-400 hover:text-gray-600 transition-colors"
+              >
+                <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+            
+            <div className="text-center">
+              {qrCodeUrl && (
+                <div className="mb-4">
+                  <img 
+                    src={qrCodeUrl} 
+                    alt="Bill QR Code" 
+                    className="mx-auto border border-gray-200 rounded-lg"
+                  />
+                </div>
+              )}
+              
+              <p className="text-sm text-gray-600 mb-4">
+                Scan this QR code with MetaMask mobile app to open this bill and make a payment.
+              </p>
+              
+              <div className="flex space-x-3">
+                <button
+                  onClick={() => navigator.clipboard.writeText(window.location.href)}
+                  className="flex-1 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                >
+                  Copy Link
+                </button>
+                <button
+                  onClick={() => setShowQRCode(false)}
+                  className="flex-1 px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors text-sm font-medium"
+                >
+                  Close
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
