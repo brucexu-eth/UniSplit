@@ -1,9 +1,9 @@
 import { useState, useEffect, useCallback } from 'react'
 
 interface ExchangeRateData {
-  success: boolean
+  base: string
   rates: { [key: string]: number }
-  timestamp: number
+  date: string
 }
 
 interface CurrencyExchangeResult {
@@ -17,7 +17,7 @@ interface CurrencyExchangeResult {
 
 const CACHE_DURATION = 5 * 60 * 1000 // 5 minutes in milliseconds
 const FALLBACK_RATES: { [key: string]: number } = {
-  NZD: 0.58, // Approximate fallback rates to USDT
+  NZD: 0.60, // Updated fallback rates to USDT (1 NZD = 0.60 USD)
   USD: 1.0,
   EUR: 1.08,
   GBP: 1.26,
@@ -46,9 +46,9 @@ export function useCurrencyExchange(): CurrencyExchangeResult {
     if (
       rateCache.data &&
       now - rateCache.timestamp < CACHE_DURATION &&
-      rateCache.data.success
+      rateCache.data.rates
     ) {
-      setRate(rateCache.data.rates.USDT || 1)
+      setRate(1) // USDT ≈ USD
       setLastUpdated(new Date(rateCache.timestamp))
       setError(null)
       return rateCache.data
@@ -58,9 +58,9 @@ export function useCurrencyExchange(): CurrencyExchangeResult {
     setError(null)
 
     try {
-      // Using exchangerate.host API (free, no API key required)
+      // Using exchangerate-api.com (free, no API key required)
       const response = await fetch(
-        'https://api.exchangerate.host/latest?base=USD&symbols=NZD,AUD,EUR,GBP,CAD,USDT'
+        'https://api.exchangerate-api.com/v4/latest/USD'
       )
 
       if (!response.ok) {
@@ -69,8 +69,8 @@ export function useCurrencyExchange(): CurrencyExchangeResult {
 
       const data: ExchangeRateData = await response.json()
 
-      if (!data.success) {
-        throw new Error('Exchange rate API returned unsuccessful response')
+      if (!data.rates || !data.base) {
+        throw new Error('Exchange rate API returned invalid response')
       }
 
       // Cache the successful response
@@ -80,7 +80,7 @@ export function useCurrencyExchange(): CurrencyExchangeResult {
       }
 
       // For USDT conversion, we assume 1 USD ≈ 1 USDT (close approximation)
-      setRate(data.rates.USDT || 1)
+      setRate(1)
       setLastUpdated(new Date())
       return data
     } catch (err) {
@@ -91,9 +91,9 @@ export function useCurrencyExchange(): CurrencyExchangeResult {
 
       // Use fallback rates if API fails
       const fallbackData: ExchangeRateData = {
-        success: true,
-        rates: FALLBACK_RATES,
-        timestamp: now,
+        base: 'USD',
+        rates: { ...FALLBACK_RATES, USD: 1 },
+        date: new Date().toISOString().split('T')[0]!,
       }
 
       rateCache = {
@@ -111,8 +111,8 @@ export function useCurrencyExchange(): CurrencyExchangeResult {
 
   const convertToUSDT = useCallback(
     (amount: number, fromCurrency: string): number => {
-      if (!rateCache.data || !rateCache.data.success) {
-        // Use fallback rates
+      if (!rateCache.data || !rateCache.data.rates) {
+        // Use fallback rates which are directly in USD terms
         const fallbackRate = FALLBACK_RATES[fromCurrency] || 1
         return amount * fallbackRate
       }
@@ -123,11 +123,12 @@ export function useCurrencyExchange(): CurrencyExchangeResult {
         return amount // Already in USDT/USD
       }
 
-      // Convert from foreign currency to USD first, then to USDT
-      const currencyToUSD = 1 / (rates[fromCurrency] || 1)
-      const usdToUSDT = rates.USDT || 1
+      // API returns rates as "1 USD = X foreign currency"
+      // So to convert from foreign currency to USD: amount / rate
+      const foreignCurrencyRate = rates[fromCurrency] || 1
+      const amountInUSD = amount / foreignCurrencyRate
 
-      return amount * currencyToUSD * usdToUSDT
+      return amountInUSD
     },
     []
   )
